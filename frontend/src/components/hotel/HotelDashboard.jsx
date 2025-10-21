@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/hotel/Sidebar";
 import { Card } from "@/components/ui/card";
-import { Menu, Plus, Package, Truck, BarChart3, Activity } from "lucide-react";
+import { Menu, Plus, Package, Truck, BarChart3, Activity, Star, Briefcase } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -23,8 +24,9 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import AddFoodModal from "@/components/hotel/AddFood";
 import FoodListings from "@/components/hotel/FoodListings";
-import DeliveryTracking from "@/components/hotel/DeliveryTracking"; // new
-import AddFoodPage from "@/components/hotel/AddFood"; // new (optional if not modal)
+import DeliveryTracking from "@/components/hotel/DeliveryTracking";
+import { useAuth } from "@/context/AuthContext";
+import ProfilePage from "@/pages/ProfilePage";
 
 const analyticsData = [
   { day: "Mon", listed: 12, picked: 8 },
@@ -72,8 +74,16 @@ export default function HotelDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [activePage, setActivePage] = useState("dashboard");
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
+
   useEffect(() => {
     if (activePage === "addFood") {
       setAddModalOpen(true);
@@ -123,7 +133,9 @@ export default function HotelDashboard() {
                 ? "Food Listings"
                 : activePage === "deliveryTracking"
                 ? "Delivery Tracking"
-                : "Add Food"}
+                : activePage === "addFood"
+                ? "Add Food"
+                : "Profile"}
             </h1>
           </div>
 
@@ -131,17 +143,28 @@ export default function HotelDashboard() {
             <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Avatar className="cursor-pointer ring-2 ring-[var(--green-primary)] hover:scale-105 transition">
-                  <AvatarImage src="/hotel-avatar.png" alt="Hotel" />
+                <Avatar className="cursor-pointer ring-2 ring-[var(--green-primary)] hover:scale-110 hover:shadow-lg transition-transform duration-200 ease-in-out">
+                  <AvatarImage src="/worker-avatar.png" alt="Worker" />
                   <AvatarFallback>H</AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="bg-[var(--card-bg)] shadow-lg"
+                className="bg-[var(--card-bg)] shadow-lg rounded-lg py-2 w-48 border border-[var(--border)]"
               >
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Logout</DropdownMenuItem>
+                <DropdownMenuItem
+                  className="flex items-center gap-2 px-4 py-2 rounded-md hover:bg-[var(--green-primary)]/10 hover:text-[var(--green-dark)] transition-colors duration-200 cursor-pointer"
+                  onClick={() => setActivePage("profile")}
+                >
+                  <Star className="w-4 h-4 text-[var(--green-primary)]" />{" "}
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="flex items-center gap-2 px-4 py-2 rounded-md hover:bg-red-100 hover:text-red-600 transition-colors duration-200 cursor-pointer"
+                  onClick={handleLogout}
+                >
+                  <Briefcase className="w-4 h-4 text-red-500" /> Logout
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -289,6 +312,7 @@ export default function HotelDashboard() {
 
           {activePage === "foodListings" && <FoodListings />}
           {activePage === "deliveryTracking" && <DeliveryTracking />}
+          {activePage === "profile" && <ProfilePage />}
         </main>
       </div>
 

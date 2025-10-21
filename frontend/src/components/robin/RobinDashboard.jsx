@@ -9,6 +9,7 @@ import {
   Award,
   BarChart3,
   Activity,
+  Briefcase,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/robin/Sidebar";
@@ -33,12 +34,22 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Progress } from "@/components/ui/progress";
 import SelectRoute from "@/components/robin/SelectRoute";
 import ActiveDelivery from "@/components/robin/ActiveDelivery";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import ProfilePage from "@/pages/ProfilePage";
 
 export default function RobinDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activePage, setActivePage] = useState("dashboard");
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
   const todayStats = {
     deliveries: 12,
@@ -100,7 +111,7 @@ export default function RobinDashboard() {
                 ? "Select Route"
                 : activePage === "activeDelivery"
                 ? " Active Delivery"
-                : ""}
+                : "Profile"}
             </h1>
           </div>
 
@@ -108,17 +119,28 @@ export default function RobinDashboard() {
             <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Avatar className="cursor-pointer ring-2 ring-[var(--green-primary)] hover:scale-105 transition">
-                  <AvatarImage src="/robin-avatar.png" alt="Robin" />
+                <Avatar className="cursor-pointer ring-2 ring-[var(--green-primary)] hover:scale-110 hover:shadow-lg transition-transform duration-200 ease-in-out">
+                  <AvatarImage src="/worker-avatar.png" alt="Worker" />
                   <AvatarFallback>R</AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="bg-[var(--card-bg)] shadow-lg"
+                className="bg-[var(--card-bg)] shadow-lg rounded-lg py-2 w-48 border border-[var(--border)]"
               >
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Logout</DropdownMenuItem>
+                <DropdownMenuItem
+                  className="flex items-center gap-2 px-4 py-2 rounded-md hover:bg-[var(--green-primary)]/10 hover:text-[var(--green-dark)] transition-colors duration-200 cursor-pointer"
+                  onClick={() => setActivePage("profile")}
+                >
+                  <Star className="w-4 h-4 text-[var(--green-primary)]" />{" "}
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="flex items-center gap-2 px-4 py-2 rounded-md hover:bg-red-100 hover:text-red-600 transition-colors duration-200 cursor-pointer"
+                  onClick={handleLogout}
+                >
+                  <Briefcase className="w-4 h-4 text-red-500" /> Logout
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -297,6 +319,7 @@ export default function RobinDashboard() {
 
           {activePage === "selectRoute" && <SelectRoute />}
           {activePage === "activeDelivery" && <ActiveDelivery />}
+          {activePage === "profile" && <ProfilePage />}
         </main>
       </div>
     </div>

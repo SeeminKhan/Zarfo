@@ -4,7 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sidebar } from "@/components/user/Sidebar";
-import { Search, Leaf, ShoppingCart, Menu, User } from "lucide-react";
+import {
+  Search,
+  Leaf,
+  Menu,
+  Star,
+  Briefcase,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -19,6 +25,9 @@ import FoodCard from "@/components/user/FoodCard";
 import CartPage from "@/components/user/CartPage";
 import MyOrdersPage from "@/components/user/MyOrders";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import ProfilePage from "@/pages/ProfilePage";
 
 export default function UserDashboard() {
   const [listings, setListings] = useState([]);
@@ -28,9 +37,15 @@ export default function UserDashboard() {
   const [timeLeft, setTimeLeft] = useState({});
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activePage, setActivePage] = useState("feed");
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
   // Fetch food
   const fetchFood = async () => {
     try {
@@ -68,7 +83,7 @@ export default function UserDashboard() {
   const addToCart = (item) => {
     if (!cart.find((i) => i._id === item._id)) {
       setCart((prev) => [...prev, item]);
-      toast.success(`${item.title} added to cart 🛒`);
+      toast.success(`${item.title} added to cart`);
     } else {
       toast.info(`${item.title} is already in your cart`);
     }
@@ -77,7 +92,7 @@ export default function UserDashboard() {
   const placeOrder = async (item) => {
     try {
       await api.post("/user/order", { foodId: item._id });
-      toast.success("Order placed successfully ✅");
+      toast.success("Order placed successfully");
       fetchFood();
       setCart((prev) => prev.filter((i) => i._id !== item._id));
     } catch (err) {
@@ -130,21 +145,35 @@ export default function UserDashboard() {
                 ? "Your Cart"
                 : activePage === "myOrders"
                 ? "My Orders"
-                : ""}
+                : "Profile"}
             </h1>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Avatar className="cursor-pointer ring-2 ring-[var(--green-primary)] hover:scale-105 transition">
-                  <AvatarImage src="/user-avatar.png" alt="User" />
+                <Avatar className="cursor-pointer ring-2 ring-[var(--green-primary)] hover:scale-110 hover:shadow-lg transition-transform duration-200 ease-in-out">
+                  <AvatarImage src="/worker-avatar.png" alt="Worker" />
                   <AvatarFallback>U</AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-[var(--card-bg)]">
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Logout</DropdownMenuItem>
+              <DropdownMenuContent
+                align="end"
+                className="bg-[var(--card-bg)] shadow-lg rounded-lg py-2 w-48 border border-[var(--border)]"
+              >
+                <DropdownMenuItem
+                  className="flex items-center gap-2 px-4 py-2 rounded-md hover:bg-[var(--green-primary)]/10 hover:text-[var(--green-dark)] transition-colors duration-200 cursor-pointer"
+                  onClick={() => setActivePage("profile")}
+                >
+                  <Star className="w-4 h-4 text-[var(--green-primary)]" />{" "}
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="flex items-center gap-2 px-4 py-2 rounded-md hover:bg-red-100 hover:text-red-600 transition-colors duration-200 cursor-pointer"
+                  onClick={handleLogout}
+                >
+                  <Briefcase className="w-4 h-4 text-red-500" /> Logout
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -212,6 +241,7 @@ export default function UserDashboard() {
           )}
 
           {activePage === "myOrders" && <MyOrdersPage />}
+          {activePage === "profile" && <ProfilePage />}
         </main>
       </div>
     </div>

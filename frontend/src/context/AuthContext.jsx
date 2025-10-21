@@ -8,23 +8,31 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // On app load, try to refresh access token
   useEffect(() => {
     const refresh = async () => {
       try {
         const { data } = await api.post("/auth/refresh"); // uses HttpOnly cookie
-        if (data?.accessToken && data?.user) {
+
+        if (data?.accessToken) {
           localStorage.setItem("zarfo_token", data.accessToken);
           setToken(data.accessToken);
-          setUser(data.user);
+
+          if (data?.user) {
+            setUser(data.user);
+          } else {
+            const userRes = await api.get("/auth/me");
+            setUser(userRes.data);
+          }
         }
       } catch (err) {
         setUser(null);
         setToken(null);
+        localStorage.removeItem("zarfo_token");
       } finally {
         setLoading(false);
       }
     };
+
     refresh();
   }, []);
 
@@ -37,7 +45,9 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       await api.post("/auth/logout"); // clears refresh token cookie
-    } catch {}
+    } catch {
+      // even if logout request fails, proceed to clear local auth state 
+    }
     localStorage.removeItem("zarfo_token");
     setUser(null);
     setToken(null);
