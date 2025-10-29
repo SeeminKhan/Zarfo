@@ -26,7 +26,7 @@ export const getAvailableFood = async (filters = {}) => {
     title: f.name,
     description: "",
     images: f.photo ? [f.photo] : [],
-    discountedPrice: f.sellingPrice || 0,
+    discountedPrice: f.aiSuggestedPrice || 0,
     originalPrice: f.sellingPrice || 0,
     cuisine: "",
     hotelName: f.hotelId?.name || "Unknown Hotel",
