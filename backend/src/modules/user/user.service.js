@@ -1,26 +1,20 @@
 import Food from "../hotel/hotel.model.js";
 import Order from "../order/order.model.js";
+import axios from "axios";
 
-// Fetch available food for user feed
 export const getAvailableFood = async (filters = {}) => {
-  const now = new Date();
-  const gracePeriod = new Date(now.getTime() - 12 * 60 * 60 * 1000); // 12h grace
+  const foods = await Food.find({ isAvailable: true, status: "listed_for_sale" })
+    .populate({ path: "hotelId", select: "name" });
 
-  const query = {
-    isAvailable: true,
-    status: "listed_for_sale",
-    decision: "sell",
-    expiryTime: { $gt: gracePeriod },
-  };
+  console.log(`Found ${foods.length} available items listed for sale.`);
 
-  if (filters.category && filters.category !== "all") {
-    query.category = { $regex: new RegExp(`^${filters.category}$`, "i") };
-  }
+  const FASTAPI_URL = process.env.FASTAPI_URL || "http://127.0.0.1:8000/predict";
 
-  const foods = await Food.find(query)
-    .populate({ path: "hotelId", select: "name", strictPopulate: false })
-    .sort({ expiryTime: 1 });
+  const processedFoods = await Promise.all(foods.map(async (f) => {
+    const pDate = new Date(f.prepTime);
+    const eDate = new Date(f.expiryTime);
 
+<<<<<<< HEAD
   return foods.map((f) => ({
     _id: f._id,
     title: f.name,
@@ -33,7 +27,67 @@ export const getAvailableFood = async (filters = {}) => {
     category: f.category,
     quantity: f.quantity,
     expiryTime: f.expiryTime,
+=======
+    const formatDate = (d) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const formatTime = (d) => {
+      const hours = String(d.getHours()).padStart(2, '0');
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    };
+
+    const aiPayload = {
+      FoodName: f.name,
+      Category: f.category || "other",
+      PrepDate: formatDate(pDate),
+      PrepTime: formatTime(pDate),
+      ExpiryDate: formatDate(eDate),
+      ExpiryTime: formatTime(eDate),
+      Quantity: parseFloat(f.quantity),
+      Price: parseFloat(f.sellingPrice)          
+    };
+
+    let finalDisplayPrice = f.sellingPrice;
+
+    try {
+      const { data } = await axios.post(FASTAPI_URL, aiPayload);
+
+      if (data.decision === "DONATE") {
+        console.log(`AI decided to DONATE (hiding from feed): ${f.name}`);
+        return null; // Hide if donated
+      }
+
+      finalDisplayPrice = data.suggested_price;
+
+      // Update DB so the order uses the same AI price
+      f.aiSuggestedPrice = finalDisplayPrice;
+      await f.save();
+
+    } catch (err) {
+      console.error(`AI Agent unreachable for ${f.name}, showing original price. Error: ${err.message}`);
+    }
+
+    return {
+      _id: f._id,
+      title: f.name,
+      discountedPrice: finalDisplayPrice, 
+      originalPrice: f.sellingPrice,
+      hotelName: f.hotelId?.name || "Zarfo Partner",
+      expiryTime: f.expiryTime,
+      images: f.photo ? [f.photo] : [],
+      description: ""
+    };
+>>>>>>> origin/farhat
   }));
+
+  const availableItems = processedFoods.filter(item => item !== null);
+  console.log(`Returning ${availableItems.length} items to user feed.`);
+  return availableItems;
 };
 
 // Place order for a food item
