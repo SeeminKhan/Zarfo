@@ -6,17 +6,19 @@ import {
 } from "./hotel.service.js";
 
 // Helper function to format Date object components for Python's strict parser
-// here we format date as YYYY-MM-DD, because Python's datetime.strptime expects that format and the one that we are taking from the user is ISO format toh we need to convert it
-const formatDateComponent = (dateObj) => dateObj.toISOString().split("T")[0]; // YYYY-MM-DD
+// We use local time methods to avoid UTC shifts that could change the date 
+const formatDateComponent = (dateObj) => {
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 // Helper function to format Time component for Python's strict parser
-// similar to date we need to format time as HH:MM, because Python's datetime.strptime expects that format
 const formatTimeComponent = (dateObj) => {
-  // Get time string (e.g., "14:30:00 GMT+0530 (IST)") and slice to HH:MM (minutes)
-  const timeString = dateObj.toTimeString().split(" ")[0]; // Gives HH:MM:SS
-
-  // We trim it to HH:MM because that's what our FastAPI format ("%Y-%m-%d %H:%M") is set to
-  return timeString.slice(0, 5);
+  const hours = String(dateObj.getHours()).padStart(2, '0');
+  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
 };
 
 export const addFood = async (req, res, next) => {
@@ -42,7 +44,10 @@ export const addFood = async (req, res, next) => {
     };
 
     // Call FastAPI to get prediction
+    console.log("Calling AI for prediction with input:", aiInput);
     const aiPrediction = await getAIDecision(aiInput);
+    console.log("AI Prediction received:", aiPrediction);
+
     // Preparing listing data to be saved in DB
     const decision = aiPrediction.decision?.toLowerCase() || "sell";
     const listingData = {
@@ -57,6 +62,7 @@ export const addFood = async (req, res, next) => {
     };
 
     const food = await addFoodListing(listingData, hotelId);
+    console.log(`Food added successfully! ID: ${food._id}, Status: ${food.status}, Decision: ${food.decision}`);
     res.status(201).json({ message: "Food listed successfully", food });
   } catch (err) {
     next(err);
