@@ -5,12 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Truck } from "lucide-react";
 import api from "@/lib/api";
 
-export default function MyOrdersPage() {
+export default function MyRequests() {
   const [orders, setOrders] = useState([]);
 
   const fetchOrders = async () => {
     try {
-      const res = await api.get("/user/orders");
+      const res = await api.get("/worker/orders");
       setOrders(res.data);
       console.log("Fetched orders:", res.data);
     } catch (err) {

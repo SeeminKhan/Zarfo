@@ -3,10 +3,8 @@ import { motion } from "framer-motion"
 
 export function Sidebar({ open, onClose, setActivePage }) {
   const menuItems = [
-    { name: "Dashboard", icon: <Home size={18} />, action: "dashboard" },
-    { name: "Request Food", icon: <Utensils size={18} />, action: "requestFood" },
-    { name: "Tracking", icon: <Truck size={18} />, action: "tracking" },
-    { name: "History", icon: <History size={18} />, action: "history" },
+    { name: "Feed", icon: <Home size={18} />, action: "feed" },
+    { name: "My Requests", icon: <Utensils size={18} />, action: "myRequests" },
   ]
 
   const handleClick = (action) => {
