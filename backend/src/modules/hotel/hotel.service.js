@@ -1,6 +1,7 @@
 // src/modules/hotel/hotel.service.js
 import axios from "axios"; 
 import Food from "./hotel.model.js";
+import { logPrediction } from "../outcome/outcome.service.js";
 
 export const addFoodListing = async (listingData, hotelId) => {
   if (listingData.quantity <= 0) {
@@ -24,6 +25,38 @@ export const addFoodListing = async (listingData, hotelId) => {
   };
 
   const food = await Food.create(newListing);
+  
+  // Log the initial ML prediction for outcome tracking
+  try {
+    const shelfLife = (new Date(listingData.expiryTime) - new Date(listingData.prepTime)) / (1000 * 60 * 60);
+    const timeLeft = (new Date(listingData.expiryTime) - new Date()) / (1000 * 60 * 60);
+    
+    await logPrediction(
+      food._id,
+      {
+        decision: listingData.decision || 'sell',
+        suggested_price: listingData.aiSuggestedPrice || listingData.sellingPrice,
+        time_left: timeLeft,
+        discount_percent: listingData.sellingPrice 
+          ? ((listingData.sellingPrice - (listingData.aiSuggestedPrice || listingData.sellingPrice)) / listingData.sellingPrice * 100)
+          : 0,
+      },
+      {
+        category: listingData.category,
+        quantity: listingData.quantity,
+        originalPrice: listingData.sellingPrice,
+        shelfLife,
+        timeLeft,
+        prepTime: listingData.prepTime,
+        expiryTime: listingData.expiryTime,
+      },
+      hotelId
+    );
+  } catch (error) {
+    console.error('Failed to log prediction:', error);
+    // Don't fail the listing if logging fails
+  }
+  
   return food;
 };
 
