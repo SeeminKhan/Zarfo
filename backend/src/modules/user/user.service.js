@@ -14,20 +14,7 @@ export const getAvailableFood = async (filters = {}) => {
     const pDate = new Date(f.prepTime);
     const eDate = new Date(f.expiryTime);
 
-<<<<<<< HEAD
-  return foods.map((f) => ({
-    _id: f._id,
-    title: f.name,
-    description: "",
-    images: f.photo ? [f.photo] : [],
-    discountedPrice: f.aiSuggestedPrice || 0,
-    originalPrice: f.sellingPrice || 0,
-    cuisine: "",
-    hotelName: f.hotelId?.name || "Unknown Hotel",
-    category: f.category,
-    quantity: f.quantity,
-    expiryTime: f.expiryTime,
-=======
+    // Helper functions for AI Payload formatting
     const formatDate = (d) => {
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -59,30 +46,31 @@ export const getAvailableFood = async (filters = {}) => {
 
       if (data.decision === "DONATE") {
         console.log(`AI decided to DONATE (hiding from feed): ${f.name}`);
-        return null; // Hide if donated
+        return null; 
       }
 
       finalDisplayPrice = data.suggested_price;
 
-      // Update DB so the order uses the same AI price
+      // Persist the AI price so the Order reflects the discount
       f.aiSuggestedPrice = finalDisplayPrice;
       await f.save();
 
     } catch (err) {
-      console.error(`AI Agent unreachable for ${f.name}, showing original price. Error: ${err.message}`);
+      console.error(`AI Agent unreachable for ${f.name}. Error: ${err.message}`);
     }
 
     return {
       _id: f._id,
       title: f.name,
-      discountedPrice: finalDisplayPrice, 
+      discountedPrice: finalDisplayPrice || f.sellingPrice, 
       originalPrice: f.sellingPrice,
       hotelName: f.hotelId?.name || "Zarfo Partner",
+      category: f.category,
+      quantity: f.quantity,
       expiryTime: f.expiryTime,
       images: f.photo ? [f.photo] : [],
       description: ""
     };
->>>>>>> origin/farhat
   }));
 
   const availableItems = processedFoods.filter(item => item !== null);
