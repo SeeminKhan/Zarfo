@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import api from "@/lib/api";
+import api from "@/lib/api"; // fetch-based client
 
 export default function Register() {
   const navigate = useNavigate();

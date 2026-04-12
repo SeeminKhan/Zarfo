@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import api from "@/lib/api";
+import api from "@/lib/api"; // fetch-based client
 
 export default function Login() {
   const navigate = useNavigate();

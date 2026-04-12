@@ -12,7 +12,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import api from "@/lib/api";
+import api from "@/lib/api"; // fetch-based client
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import FoodCard from "@/components/worker/FoodCard";
@@ -45,9 +45,8 @@ export default function WorderDashboard() {
         params: selectedFilter !== "all" ? { category: selectedFilter } : {},
       });
       setListings(Array.isArray(res.data) ? res.data : []);
-      console.log("Fetched food listings:", res.data);
     } catch (err) {
-      console.error("Failed to fetch donation food:", err);
+      console.error("Failed to fetch donation food:", err.message);
       setListings([]);
     }
   };
@@ -77,9 +76,9 @@ export default function WorderDashboard() {
     try {
       await api.post("/worker/order/create", { foodId: item._id });
       toast.success("Request sent successfully");
-      fetchFood(); // refresh
+      fetchFood();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to request");
+      toast.error(err.response?.data?.message || err.message || "Failed to request");
     }
   };
 
@@ -99,7 +98,7 @@ export default function WorderDashboard() {
       fetchFood();
       setCart((prev) => prev.filter((i) => i._id !== item._id));
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to send request");
+      toast.error(err.response?.data?.message || err.message || "Failed to send request");
     }
   };
 

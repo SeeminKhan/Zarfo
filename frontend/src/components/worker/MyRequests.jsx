@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Truck } from "lucide-react";
-import api from "@/lib/api";
+import api from "@/lib/api"; // fetch-based client
 
 export default function MyRequests() {
   const [orders, setOrders] = useState([]);
@@ -12,9 +12,8 @@ export default function MyRequests() {
     try {
       const res = await api.get("/worker/orders");
       setOrders(res.data);
-      console.log("Fetched orders:", res.data);
     } catch (err) {
-      console.error("Failed to fetch orders:", err);
+      console.error("Failed to fetch orders:", err.message);
     }
   };
 

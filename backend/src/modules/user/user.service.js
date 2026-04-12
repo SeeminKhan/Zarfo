@@ -1,6 +1,5 @@
 import Food from "../hotel/hotel.model.js";
 import Order from "../order/order.model.js";
-import axios from "axios";
 
 export const getAvailableFood = async (filters = {}) => {
   const foods = await Food.find({ isAvailable: true, status: "listed_for_sale" })
@@ -42,7 +41,17 @@ export const getAvailableFood = async (filters = {}) => {
     let finalDisplayPrice = f.sellingPrice;
 
     try {
-      const { data } = await axios.post(FASTAPI_URL, aiPayload);
+      const res = await fetch(FASTAPI_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(aiPayload),
+      });
+
+      if (!res.ok) {
+        throw new Error(`AI service responded with ${res.status}`);
+      }
+
+      const data = await res.json();
 
       if (data.decision === "DONATE") {
         console.log(`AI decided to DONATE (hiding from feed): ${f.name}`);
