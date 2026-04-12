@@ -28,6 +28,19 @@ app.use("/api/user", userRoutes);
 app.use("/api/order", orderRoutes);
 app.use("/api/delivery", deliveryRoutes);
 app.use("/api/worker", workerRoutes);
+
+// Global error handler — must be defined AFTER all routes
+app.use((err, req, res, next) => {
+  const status  = err.status ?? err.statusCode ?? 500;
+  const message = err.message || "Internal Server Error";
+
+  console.error(`\n[ERROR] ${req.method} ${req.originalUrl}`);
+  console.error(`[ERROR] Status: ${status}`);
+  console.error(`[ERROR] Message: ${message}`);
+  if (status === 500) console.error(err.stack);
+
+  res.status(status).json({ error: message });
+});
 // DB + Server
 const startServer = async () => {
   await connectDB();

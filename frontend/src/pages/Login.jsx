@@ -1,137 +1,155 @@
-import { useState, useEffect} from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2, ChefHat, ArrowLeft } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { motion } from "framer-motion";
 import api from "@/lib/api";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, user} = useAuth();
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const { login, user } = useAuth();
+  const [form, setForm]               = useState({ email: "", password: "" });
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  useEffect(() => {
+    if (user) {
+      const r = user.role;
+      if (r === "admin")  navigate("/admin/dashboard");
+      else if (r === "hotel")  navigate("/hotel/dashboard");
+      else if (r === "robin")  navigate("/robin/dashboard");
+      else if (r === "worker") navigate("/worker/dashboard");
+      else navigate("/user/dashboard");
+    }
+  }, [user]);
 
-// Redirect if already logged in
-useEffect(() => {
-  if (!loading && user) {
-    const role = user.role;
-    if (role === "admin") navigate("/admin/dashboard");
-    else if (role === "hotel") navigate("/hotel/dashboard");
-    else if (role === "robin") navigate("/robin/dashboard");
-    else if (role === "worker") navigate("/worker/dashboard");
-    else navigate("/user/dashboard");
-  }
-}, [user, loading]);
-
-
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-
     try {
       const { data } = await api.post("/auth/login", form);
       login(data.accessToken, data.user);
-
-      const role = data.user.role;
-      if (role === "admin") navigate("/admin/dashboard");
-      else if (role === "hotel") navigate("/hotel/dashboard");
-      else if (role === "robin") navigate("/robin/dashboard");
-      else if (role === "worker") navigate("/worker/dashboard");
+      const r = data.user.role;
+      if (r === "admin")  navigate("/admin/dashboard");
+      else if (r === "hotel")  navigate("/hotel/dashboard");
+      else if (r === "robin")  navigate("/robin/dashboard");
+      else if (r === "worker") navigate("/worker/dashboard");
       else navigate("/user/dashboard");
     } catch (err) {
-      setError(err.response?.data?.error || "Login failed");
+      setError(err.response?.data?.error || "Login failed. Check your credentials.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-color-light)] text-[var(--text-color)] px-4 transition-colors duration-300">
-      <div className="absolute top-4 right-4"><ThemeToggle /></div>
+    <div className="min-h-screen flex bg-[var(--bg-color-light)] text-[var(--text-color)]">
+      {/* Left decorative panel — hidden on mobile */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[var(--green-dark)] to-[var(--green-primary)] flex-col items-center justify-center p-12 relative overflow-hidden">
+        <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-black/10 blur-3xl pointer-events-none" />
+        <div className="relative z-10 text-center text-white">
+          <div className="w-20 h-20 rounded-3xl bg-white/20 flex items-center justify-center mx-auto mb-6 shadow-2xl">
+            <ChefHat className="w-10 h-10 text-white" />
+          </div>
+          <h2 className="text-4xl font-black tracking-tight mb-3">Zarfo</h2>
+          <p className="text-white/70 text-base leading-relaxed max-w-xs">
+            AI-powered food redistribution. Connecting surplus to need, every night.
+          </p>
+          <div className="mt-10 grid grid-cols-2 gap-4 text-left">
+            {[
+              { label: "Hotels onboarded", value: "120+" },
+              { label: "Meals saved",      value: "50k+"  },
+              { label: "Night Robins",     value: "300+"  },
+              { label: "Workers fed",      value: "10k+"  },
+            ].map((s) => (
+              <div key={s.label} className="bg-white/10 rounded-2xl px-4 py-3">
+                <p className="text-2xl font-black text-white">{s.value}</p>
+                <p className="text-white/60 text-xs mt-0.5">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
-      <Card className="w-full max-w-md p-8 rounded-3xl shadow-xl backdrop-blur-md bg-[var(--card-bg)] border-none transition-colors duration-300">
-        <CardHeader className="text-center mb-4">
-          <CardTitle className="text-3xl font-bold text-[var(--green-primary)]">
-            Welcome back
-          </CardTitle>
-          <p className="text-sm text-[var(--muted-text)] mt-1">
+      {/* Right form panel */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative">
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+          <ThemeToggle />
+        </div>
+        <button onClick={() => navigate("/")}
+          className="absolute top-4 left-4 flex items-center gap-1.5 text-xs text-[var(--muted-text)] hover:text-[var(--text-color)] transition-colors font-medium">
+          <ArrowLeft className="w-3.5 h-3.5" />Back
+        </button>
+
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
+          className="w-full max-w-md">
+          {/* Logo for mobile */}
+          <div className="flex items-center gap-3 mb-8 lg:hidden">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[var(--green-primary)] to-[var(--green-dark)] flex items-center justify-center shadow-lg">
+              <ChefHat className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-black text-[var(--green-primary)]">Zarfo</span>
+          </div>
+
+          <h1 className="text-3xl font-black text-[var(--text-color)] mb-1">Welcome back</h1>
+          <p className="text-sm text-[var(--muted-text)] mb-8">
             Sign in to continue your journey with <span className="font-semibold text-[var(--green-primary)]">Zarfo</span>.
           </p>
-        </CardHeader>
 
-        {error && (
-          <div className="text-red-500 text-sm text-center mb-2">{error}</div>
-        )}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3 mb-5">
+              {error}
+            </div>
+          )}
 
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email Input */}
-            <div className="relative">
-              <Mail className="absolute left-3 top-3.5 text-[var(--muted-text)]" size={18} />
-              <Input
-                type="email"
-                name="email"
-                placeholder="Email"
-                value={form.email}
-                onChange={handleChange}
-                required
-                className="pl-10 focus:ring-[var(--green-primary)] focus:border-[var(--green-primary)]"
-              />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[var(--text-color)]">Email</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-text)]" />
+                <Input type="email" name="email" placeholder="you@example.com"
+                  value={form.email} onChange={handleChange} required
+                  className="pl-9 h-11 rounded-xl border-[rgba(0,0,0,0.1)] bg-[var(--bg-color-light)] focus:ring-2 focus:ring-[var(--green-primary)]/30" />
+              </div>
             </div>
 
-            {/* Password Input */}
-            <div className="relative">
-              <Lock className="absolute left-3 top-3.5 text-[var(--muted-text)]" size={18} />
-              <Input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                placeholder="Password"
-                value={form.password}
-                onChange={handleChange}
-                required
-                className="pl-10 pr-10 focus:ring-[var(--green-primary)] focus:border-[var(--green-primary)]"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-3.5 text-[var(--muted-text)] hover:text-[var(--text-color)] transition-colors"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[var(--text-color)]">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-text)]" />
+                <Input type={showPassword ? "text" : "password"} name="password" placeholder="Your password"
+                  value={form.password} onChange={handleChange} required
+                  className="pl-9 pr-10 h-11 rounded-xl border-[rgba(0,0,0,0.1)] bg-[var(--bg-color-light)] focus:ring-2 focus:ring-[var(--green-primary)]/30" />
+                <button type="button" onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-text)] hover:text-[var(--text-color)] transition-colors">
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
-            {/* Login Button */}
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[var(--green-primary)] hover:bg-[var(--green-dark)] text-white font-semibold py-2 rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
-            >
-              {loading && <Loader2 className="animate-spin" size={18} />}
-              {loading ? "Logging in..." : "Login"}
+            <Button type="submit" disabled={loading}
+              className="w-full h-11 rounded-xl bg-gradient-to-r from-[var(--green-primary)] to-[var(--green-dark)] hover:opacity-90 text-white font-bold text-sm border-0 shadow-lg shadow-[var(--green-primary)]/25 mt-2">
+              {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Signing in...</> : "Sign In"}
             </Button>
           </form>
 
-          <p className="text-sm text-center mt-5 text-[var(--muted-text)]">
-            Don’t have an account?{" "}
-            <span
-              onClick={() => navigate("/register")}
-              className="text-[var(--green-primary)] font-medium hover:underline cursor-pointer"
-            >
-              Register
+          <p className="text-sm text-center mt-6 text-[var(--muted-text)]">
+            Don't have an account?{" "}
+            <span onClick={() => navigate("/register")}
+              className="text-[var(--green-primary)] font-semibold hover:underline cursor-pointer">
+              Create one
             </span>
           </p>
-        </CardContent>
-      </Card>
+        </motion.div>
+      </div>
     </div>
   );
 }

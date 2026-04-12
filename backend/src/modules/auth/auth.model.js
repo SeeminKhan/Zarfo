@@ -12,12 +12,19 @@ const userSchema = new mongoose.Schema(
     },
     address: {
       houseNo: { type: String },
-      suburb: { type: String },
-      city: { type: String },
-      state: { type: String },
+      suburb:  { type: String },
+      city:    { type: String },
+      state:   { type: String },
+    },
+    // Live / last-known coordinates — used by route optimizer for robins
+    location: {
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null },
     },
   },
   { timestamps: true }
 );
+
+userSchema.index({ role: 1 });
 
 export default mongoose.model("User", userSchema);

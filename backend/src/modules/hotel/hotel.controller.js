@@ -59,6 +59,11 @@ export const addFood = async (req, res, next) => {
       prepTime: prep,
       expiryTime: expiry,
       photo: req.file ? req.file.buffer : "",
+      // Accept lat/lng from the form so the route optimizer can use it
+      location: {
+        lat: req.body.lat ? parseFloat(req.body.lat) : null,
+        lng: req.body.lng ? parseFloat(req.body.lng) : null,
+      },
     };
 
     const food = await addFoodListing(listingData, hotelId);

@@ -51,3 +51,50 @@ export const refreshToken = async (req, res) => {
     res.status(403).json({ error: "Invalid refresh token" });
   }
 };
+
+/**
+ * GET /api/auth/me
+ * Returns the currently authenticated user.
+ */
+export const getMe = async (req, res) => {
+  try {
+    res.json(req.user);
+  } catch (err) {
+    console.error("[auth/me] Error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * PATCH /api/auth/location
+ * Body: { lat: number, lng: number }
+ * Updates the authenticated user's location — used by robins before route optimisation.
+ */
+export const updateLocation = async (req, res) => {
+  try {
+    const { lat, lng } = req.body;
+
+    if (lat === undefined || lng === undefined) {
+      return res.status(400).json({ error: "lat and lng are required." });
+    }
+
+    const parsedLat = parseFloat(lat);
+    const parsedLng = parseFloat(lng);
+
+    if (isNaN(parsedLat) || isNaN(parsedLng)) {
+      return res.status(400).json({ error: "lat and lng must be valid numbers." });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { location: { lat: parsedLat, lng: parsedLng } },
+      { new: true, select: "-password" }
+    );
+
+    console.log(`[auth/location] Updated location for user ${user._id} (${user.role}): lat=${parsedLat}, lng=${parsedLng}`);
+    res.json({ message: "Location updated successfully", location: user.location });
+  } catch (err) {
+    console.error("[auth/location] Error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};

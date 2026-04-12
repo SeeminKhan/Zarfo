@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import api from "@/lib/api";
+import api from "@/lib/api"; // fetch-based client
 
 export default function AuthModal({ type, isOpen, onClose, onSuccess }) {
   const [form, setForm] = useState({
