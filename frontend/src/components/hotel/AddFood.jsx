@@ -42,6 +42,7 @@ export default function AddFoodModal({ open, onOpenChange, onAdded }) {
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Use Textarea component if available, otherwise use fallback
   const TextAreaComp = Textarea || FallbackTextarea;
 
   const handleImageChange = (e) => {
@@ -69,17 +70,25 @@ export default function AddFoodModal({ open, onOpenChange, onAdded }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
+
+    // Validate required fields
     if (!foodName || !category || !prepTime || !expiryTime || !quantity || !price) {
-      toast.error("Please fill in all required fields");
+      toast.error("Please fill in all required fields", { position: "top-right", autoClose: 3000 });
       return;
     }
+
     setLoading(true);
     try {
       const formData = new FormData();
       formData.append("name", foodName);
       formData.append("category", category);
+
+      // Send datetime-local values directly (ISO format handled by backend if needed, or send as is)
+      // The backend expects ISO string or date string. datetime-local value is "YYYY-MM-DDTHH:mm"
+      // We can convert to full ISO string to be safe.
       formData.append("prepTime", new Date(prepTime).toISOString());
       formData.append("expiryTime", new Date(expiryTime).toISOString());
+
       formData.append("quantity", quantity);
       formData.append("sellingPrice", price);
       if (imageFile) formData.append("photo", imageFile);
@@ -88,120 +97,91 @@ export default function AddFoodModal({ open, onOpenChange, onAdded }) {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      toast.success("Food listed on Zarfo successfully!");
+      toast.success("Food Live on Zarfo!", { position: "top-right", autoClose: 3000 });
+
       if (onAdded) onAdded(data);
-      resetForm();
+
+      // Reset form
+      setFoodName("");
+      setCategory("");
+      setPrepTime("");
+      setExpiryTime("");
+      setQuantity("");
+      setPrice("");
+      setImageFile(null);
       onOpenChange(false);
     } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to add food listing");
+      console.error(err);
+      toast.error(err.response?.data?.error || "Failed to add food listing", { position: "top-right", autoClose: 3000 });
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
-      <DialogContent className="max-w-xl bg-[var(--card-bg)] text-[var(--text-color)] border border-[rgba(0,0,0,0.08)] rounded-2xl shadow-2xl p-0 overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-[var(--green-primary)] to-[var(--green-dark)] px-6 py-5">
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                <ChefHat className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <DialogTitle className="text-white text-base font-bold leading-none">Add Food Listing</DialogTitle>
-                <p className="text-white/70 text-xs mt-1">List surplus food on Zarfo marketplace</p>
-              </div>
-            </div>
-          </DialogHeader>
-        </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg bg-[var(--card-bg)] text-[var(--text-color)] transition-colors duration-300">
+        <DialogHeader>
+          <DialogTitle>Add Food</DialogTitle>
+          <DialogDescription>Provide the details for your listing in Zarfo.</DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
-          {/* Food Name */}
-          <div className="space-y-1.5">
-            <Label htmlFor="food-name" className="text-xs font-semibold text-[var(--text-color)] flex items-center gap-1.5">
-              <UtensilsCrossed className="w-3.5 h-3.5 text-[var(--green-primary)]" />
-              Food Name <span className="text-red-400">*</span>
-            </Label>
+        <form onSubmit={handleSubmit} className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="food-name">Food Name *</Label>
             <Input
               id="food-name"
               placeholder="e.g., Veg Biryani, Paneer Tikka"
               value={foodName}
               onChange={(e) => setFoodName(e.target.value)}
               required
-              className="rounded-xl border-[rgba(0,0,0,0.1)] bg-[var(--bg-color-light)] focus:ring-2 focus:ring-[var(--green-primary)]/30 focus:border-[var(--green-primary)]/50 h-10 text-sm"
             />
           </div>
 
-          {/* Category */}
-          <div className="space-y-2">
-            <Label className="text-xs font-semibold text-[var(--text-color)] flex items-center gap-1.5">
-              <Tag className="w-3.5 h-3.5 text-[var(--green-primary)]" />
-              Category <span className="text-red-400">*</span>
-            </Label>
-            <div className="grid grid-cols-5 gap-2">
-              {categories.map((cat) => {
-                const Icon = cat.icon;
-                const isSelected = category === cat.value;
-                return (
-                  <button
-                    key={cat.value}
-                    type="button"
-                    onClick={() => setCategory(cat.value)}
-                    className={`flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-xl border text-[10px] font-semibold transition-all duration-150 ${
-                      isSelected
-                        ? `${cat.color} border-current shadow-sm scale-105`
-                        : "border-[rgba(0,0,0,0.08)] bg-[var(--bg-color-light)] text-[var(--muted-text)] hover:border-[rgba(0,0,0,0.15)]"
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 ${isSelected ? "" : "opacity-60"}`} />
-                    {cat.label}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="grid gap-2">
+            <Label htmlFor="category">Category *</Label>
+            <select
+              id="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full rounded-md border border-input bg-[var(--card-bg)] px-3 py-2 text-sm shadow-sm outline-none ring-0 focus-visible:ring-2 focus-visible:ring-[var(--green-primary)]"
+              required
+            >
+              <option value="">Select category</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Prep & Expiry Time */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="prep-date" className="text-xs font-semibold text-[var(--text-color)] flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-[var(--green-primary)]" />
-                Prep Time <span className="text-red-400">*</span>
-              </Label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="prep-date">Prep Date & Time *</Label>
               <Input
                 id="prep-date"
                 type="datetime-local"
                 value={prepTime}
                 onChange={(e) => setPrepTime(e.target.value)}
                 required
-                className="rounded-xl border-[rgba(0,0,0,0.1)] bg-[var(--bg-color-light)] focus:ring-2 focus:ring-[var(--green-primary)]/30 h-10 text-sm"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="expiry-date" className="text-xs font-semibold text-[var(--text-color)] flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-red-400" />
-                Expiry Time <span className="text-red-400">*</span>
-              </Label>
+            <div className="grid gap-2">
+              <Label htmlFor="expiry-date">Expiry Date & Time *</Label>
               <Input
                 id="expiry-date"
                 type="datetime-local"
                 value={expiryTime}
                 onChange={(e) => setExpiryTime(e.target.value)}
                 required
-                className="rounded-xl border-[rgba(0,0,0,0.1)] bg-[var(--bg-color-light)] focus:ring-2 focus:ring-[var(--green-primary)]/30 h-10 text-sm"
               />
             </div>
           </div>
 
-          {/* Quantity & Price */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="quantity" className="text-xs font-semibold text-[var(--text-color)] flex items-center gap-1.5">
-                <Hash className="w-3.5 h-3.5 text-[var(--green-primary)]" />
-                Quantity <span className="text-red-400">*</span>
-              </Label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid gap-2">
+              <Label htmlFor="quantity">Quantity *</Label>
               <Input
                 id="quantity"
                 type="number"
@@ -210,14 +190,10 @@ export default function AddFoodModal({ open, onOpenChange, onAdded }) {
                 onChange={(e) => setQuantity(e.target.value)}
                 required
                 min="1"
-                className="rounded-xl border-[rgba(0,0,0,0.1)] bg-[var(--bg-color-light)] focus:ring-2 focus:ring-[var(--green-primary)]/30 h-10 text-sm"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="price" className="text-xs font-semibold text-[var(--text-color)] flex items-center gap-1.5">
-                <IndianRupee className="w-3.5 h-3.5 text-[var(--green-primary)]" />
-                Price (INR) <span className="text-red-400">*</span>
-              </Label>
+            <div className="grid gap-2">
+              <Label htmlFor="price">Price (₹) *</Label>
               <Input
                 id="price"
                 type="number"
@@ -226,7 +202,6 @@ export default function AddFoodModal({ open, onOpenChange, onAdded }) {
                 onChange={(e) => setPrice(e.target.value)}
                 required
                 min="0"
-                className="rounded-xl border-[rgba(0,0,0,0.1)] bg-[var(--bg-color-light)] focus:ring-2 focus:ring-[var(--green-primary)]/30 h-10 text-sm"
               />
             </div>
           </div>

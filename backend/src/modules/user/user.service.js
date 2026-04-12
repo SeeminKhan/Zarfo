@@ -1,5 +1,6 @@
 import Food from "../hotel/hotel.model.js";
 import Order from "../order/order.model.js";
+import axios from "axios";
 
 export const getAvailableFood = async (filters = {}) => {
   const foods = await Food.find({ isAvailable: true, status: "listed_for_sale" })
@@ -13,7 +14,6 @@ export const getAvailableFood = async (filters = {}) => {
     const pDate = new Date(f.prepTime);
     const eDate = new Date(f.expiryTime);
 
-    // Helper functions for AI Payload formatting
     const formatDate = (d) => {
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -41,41 +41,29 @@ export const getAvailableFood = async (filters = {}) => {
     let finalDisplayPrice = f.sellingPrice;
 
     try {
-      const res = await fetch(FASTAPI_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(aiPayload),
-      });
-
-      if (!res.ok) {
-        throw new Error(`AI service responded with ${res.status}`);
-      }
-
-      const data = await res.json();
+      const { data } = await axios.post(FASTAPI_URL, aiPayload);
 
       if (data.decision === "DONATE") {
         console.log(`AI decided to DONATE (hiding from feed): ${f.name}`);
-        return null; 
+        return null; // Hide if donated
       }
 
       finalDisplayPrice = data.suggested_price;
 
-      // Persist the AI price so the Order reflects the discount
+      // Update DB so the order uses the same AI price
       f.aiSuggestedPrice = finalDisplayPrice;
       await f.save();
 
     } catch (err) {
-      console.error(`AI Agent unreachable for ${f.name}. Error: ${err.message}`);
+      console.error(`AI Agent unreachable for ${f.name}, showing original price. Error: ${err.message}`);
     }
 
     return {
       _id: f._id,
       title: f.name,
-      discountedPrice: finalDisplayPrice || f.sellingPrice, 
+      discountedPrice: finalDisplayPrice, 
       originalPrice: f.sellingPrice,
       hotelName: f.hotelId?.name || "Zarfo Partner",
-      category: f.category,
-      quantity: f.quantity,
       expiryTime: f.expiryTime,
       images: f.photo ? [f.photo] : [],
       description: ""
