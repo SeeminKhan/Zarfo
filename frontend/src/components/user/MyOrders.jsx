@@ -9,13 +9,26 @@ const getStatusConfig = (status) => {
     case "pending_pickup":
     case "pending":
       return { label: "Pending Pickup", bg: "bg-yellow-100 text-yellow-700", dot: "bg-yellow-500", pulse: true };
-    case "in_transit":
-      return { label: "In Transit",     bg: "bg-blue-100 text-blue-700",     dot: "bg-blue-500",   pulse: true };
+    case "on_the_way":
+      return { label: "On the Way",     bg: "bg-blue-100 text-blue-700",     dot: "bg-blue-500",   pulse: true };
     case "delivered":
       return { label: "Delivered",      bg: "bg-green-100 text-green-700",   dot: "bg-green-500",  pulse: false };
+    case "cancelled":
+      return { label: "Cancelled",      bg: "bg-red-100 text-red-600",       dot: "bg-red-400",    pulse: false };
     default:
       return { label: status || "Unknown", bg: "bg-gray-100 text-gray-600", dot: "bg-gray-400",   pulse: false };
   }
+};
+
+const openTrack = (robinLocation) => {
+  if (!robinLocation?.lat) {
+    alert("Robin location not available yet. Check back once pickup is confirmed.");
+    return;
+  }
+  window.open(
+    `https://www.google.com/maps?q=${robinLocation.lat},${robinLocation.lng}`,
+    "_blank"
+  );
 };
 
 export default function MyOrdersPage() {
@@ -35,6 +48,14 @@ export default function MyOrdersPage() {
   };
 
   useEffect(() => { fetchOrders(); }, []);
+
+  // Auto-refresh every 30s when there are active orders
+  useEffect(() => {
+    const hasActive = orders.some((o) => o.status !== "delivered" && o.status !== "cancelled");
+    if (!hasActive) return;
+    const interval = setInterval(fetchOrders, 30000);
+    return () => clearInterval(interval);
+  }, [orders]);
 
   const activeOrders = orders.filter((o) => o.status !== "delivered" && o.status !== "Delivered");
   const pastOrders   = orders.filter((o) => o.status === "delivered" || o.status === "Delivered");
@@ -98,45 +119,88 @@ export default function MyOrdersPage() {
         </div>
 
         {/* Body */}
-        <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex flex-wrap gap-4">
-            {order.driver && (
+        <div className="px-5 py-4 space-y-4">
+          {/* Progress bar */}
+          {!isPast && (
+            <div>
+              <div className="flex justify-between text-[10px] text-[var(--muted-text)] mb-1.5">
+                <span>Order Placed</span><span>Picked Up</span><span>Delivered</span>
+              </div>
+              <div className="w-full h-1.5 bg-[var(--bg-color-light)] rounded-full overflow-hidden">
+                <div className={`h-full rounded-full bg-gradient-to-r from-[var(--green-primary)] to-emerald-400 transition-all duration-500 ${
+                  order.status === "on_the_way" ? "w-2/3" :
+                  order.status === "delivered"  ? "w-full" : "w-1/3"
+                }`} />
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            {/* Timeline */}
+            <div className="space-y-2 flex-1">
               <div className="flex items-center gap-2 text-xs text-[var(--muted-text)]">
-                <div className="w-6 h-6 rounded-lg bg-purple-50 flex items-center justify-center">
-                  <Truck className="w-3.5 h-3.5 text-purple-500" />
+                <div className="w-5 h-5 rounded-lg bg-[var(--bg-color-light)] flex items-center justify-center flex-shrink-0">
+                  <Package className="w-3 h-3" />
                 </div>
-                <span>{order.driver}</span>
+                <span>Ordered: {new Date(order.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
               </div>
-            )}
-            {order.eta && (
-              <div className="flex items-center gap-2 text-xs text-[var(--muted-text)]">
-                <div className="w-6 h-6 rounded-lg bg-orange-50 flex items-center justify-center">
-                  <Clock className="w-3.5 h-3.5 text-orange-500" />
+              {order.driver && (
+                <div className="flex items-center gap-2 text-xs text-[var(--muted-text)]">
+                  <div className="w-5 h-5 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
+                    <Truck className="w-3 h-3 text-purple-500" />
+                  </div>
+                  <span>Robin: <span className="font-semibold text-[var(--text-color)]">{order.driver}</span></span>
                 </div>
-                <span>ETA: {order.eta} mins</span>
-              </div>
-            )}
-            {order.price != null && (
-              <div className="flex items-center gap-1 text-xs font-bold text-[var(--green-primary)]">
-                <IndianRupee className="w-3 h-3" />{order.price}
-              </div>
-            )}
-          </div>
-          <div className="flex gap-2">
-            {!isPast ? (
-              <>
+              )}
+              {order.pickedUpAt && (
+                <div className="flex items-center gap-2 text-xs text-[var(--muted-text)]">
+                  <div className="w-5 h-5 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
+                    <Truck className="w-3 h-3 text-orange-500" />
+                  </div>
+                  <span>Picked up: {new Date(order.pickedUpAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+              )}
+              {order.eta != null && !order.deliveredAt && (
+                <div className="flex items-center gap-2 text-xs text-[var(--muted-text)]">
+                  <div className="w-5 h-5 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-3 h-3 text-blue-500" />
+                  </div>
+                  <span>ETA: ~{order.eta} min</span>
+                </div>
+              )}
+              {order.deliveredAt && (
+                <div className="flex items-center gap-2 text-xs text-[var(--green-primary)] font-semibold">
+                  <div className="w-5 h-5 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 className="w-3 h-3" />
+                  </div>
+                  <span>Delivered: {new Date(order.deliveredAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+              )}
+              {order.price != null && order.price > 0 && (
+                <div className="flex items-center gap-1 text-xs font-bold text-[var(--green-primary)]">
+                  <IndianRupee className="w-3 h-3" />{order.price}
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 flex-shrink-0">
+              {!isPast ? (
+                <>
+                  <Button onClick={() => openTrack(order.robinLocation)} variant="outline" size="sm"
+                    className="h-8 text-xs rounded-xl border-[rgba(0,0,0,0.1)] hover:bg-[var(--bg-color-light)] gap-1.5">
+                    <Navigation className="w-3.5 h-3.5" /> Track
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-8 text-xs rounded-xl border-[rgba(0,0,0,0.1)] hover:bg-[var(--bg-color-light)] gap-1.5">
+                    <Phone className="w-3.5 h-3.5" /> Contact
+                  </Button>
+                </>
+              ) : (
                 <Button variant="outline" size="sm" className="h-8 text-xs rounded-xl border-[rgba(0,0,0,0.1)] hover:bg-[var(--bg-color-light)] gap-1.5">
-                  <Navigation className="w-3.5 h-3.5" /> Track
+                  <Star className="w-3.5 h-3.5" /> Rate
                 </Button>
-                <Button variant="outline" size="sm" className="h-8 text-xs rounded-xl border-[rgba(0,0,0,0.1)] hover:bg-[var(--bg-color-light)] gap-1.5">
-                  <Phone className="w-3.5 h-3.5" /> Contact
-                </Button>
-              </>
-            ) : (
-              <Button variant="outline" size="sm" className="h-8 text-xs rounded-xl border-[rgba(0,0,0,0.1)] hover:bg-[var(--bg-color-light)] gap-1.5">
-                <Star className="w-3.5 h-3.5" /> Rate
-              </Button>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </motion.div>

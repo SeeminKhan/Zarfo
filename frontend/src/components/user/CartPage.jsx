@@ -17,11 +17,40 @@ const getCategoryConfig = (category) => {
 export default function CartPage({ cart, setCart, fetchFood }) {
   const placeOrder = async (item) => {
     try {
+      // Save location FIRST and WAIT for it before placing order
+      // This ensures the NightWorkerRequest gets the correct location
+      if (navigator.geolocation) {
+        await new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              try {
+                await api.patch("/auth/location", {
+                  lat: pos.coords.latitude,
+                  lng: pos.coords.longitude,
+                });
+                console.log(`[CartPage] Location saved: lat=${pos.coords.latitude}, lng=${pos.coords.longitude}`);
+              } catch (locErr) {
+                console.warn("[CartPage] Could not save location:", locErr.message);
+              }
+              resolve();
+            },
+            (err) => {
+              console.warn("[CartPage] Geolocation denied:", err.message);
+              resolve(); // continue even if location fails
+            },
+            { enableHighAccuracy: true, timeout: 5000 }
+          );
+        });
+      }
+
+      console.log(`[CartPage] Placing order for food: ${item._id} (${item.title})`);
       await api.post("/user/order/create", { foodId: item._id });
-      toast.success("Order placed successfully");
+      console.log(`[CartPage] Order placed successfully for: ${item._id}`);
+      toast.success("Order placed! A robin will deliver it to you.");
       setCart((prev) => prev.filter((i) => i._id !== item._id));
       fetchFood();
     } catch (err) {
+      console.error("[CartPage] placeOrder error:", err.message, err);
       toast.error(err.response?.data?.message || err.message || "Failed to place order");
     }
   };

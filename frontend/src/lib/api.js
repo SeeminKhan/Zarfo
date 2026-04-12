@@ -1,25 +1,32 @@
 const BASE_URL = "http://localhost:5000/api";
 
-// Custom error class that mirrors what axios threw so callers need minimal changes
+// Custom error class — keeps err.response.data compatible with old axios catch blocks
 export class ApiError extends Error {
   constructor(message, status, data) {
     super(message);
     this.name = "ApiError";
     this.status = status;
-    // Expose response.data so existing catch blocks using err.response?.data still work
     this.response = { data, status };
   }
 }
 
 async function request(method, path, { body, params, isFormData = false } = {}) {
+  // Guard: path must start with "/" and must not contain the method name
+  if (typeof path !== "string" || !path.startsWith("/")) {
+    throw new TypeError(`api: invalid path "${path}". Must be a string starting with "/".`);
+  }
+
   const token = localStorage.getItem("zarfo_token");
 
   const headers = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  if (!isFormData && body) headers["Content-Type"] = "application/json";
+  if (!isFormData && body !== undefined && body !== null) {
+    headers["Content-Type"] = "application/json";
+  }
 
+  // Build URL — never let method bleed into the URL string
   let url = `${BASE_URL}${path}`;
-  if (params && Object.keys(params).length > 0) {
+  if (params && typeof params === "object" && Object.keys(params).length > 0) {
     const qs = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== null)
     ).toString();
@@ -27,13 +34,17 @@ async function request(method, path, { body, params, isFormData = false } = {}) 
   }
 
   const res = await fetch(url, {
-    method,
+    method: method.toUpperCase(),          // always uppercase, never in the URL
     headers,
-    credentials: "include", // sends HttpOnly cookies (refresh token)
-    body: isFormData ? body : body ? JSON.stringify(body) : undefined,
+    credentials: "include",               // sends HttpOnly refresh-token cookie
+    body: isFormData
+      ? body
+      : body !== undefined && body !== null
+        ? JSON.stringify(body)
+        : undefined,
   });
 
-  // Parse response body — try JSON first, fall back to text
+  // Parse response — JSON first, plain text fallback
   let data;
   const contentType = res.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
@@ -53,14 +64,11 @@ async function request(method, path, { body, params, isFormData = false } = {}) 
 }
 
 const api = {
-  get: (path, { params } = {}) => request("GET", path, { params }),
-  post: (path, body, { headers } = {}) => {
-    const isFormData = body instanceof FormData;
-    return request("POST", path, { body, isFormData });
-  },
-  put: (path, body) => request("PUT", path, { body }),
-  patch: (path, body) => request("PATCH", path, { body }),
-  delete: (path) => request("DELETE", path),
+  get:    (path, { params } = {})  => request("GET",    path, { params }),
+  post:   (path, body)             => request("POST",   path, { body, isFormData: body instanceof FormData }),
+  put:    (path, body)             => request("PUT",    path, { body }),
+  patch:  (path, body)             => request("PATCH",  path, { body }),
+  delete: (path)                   => request("DELETE", path),
 };
 
 export default api;

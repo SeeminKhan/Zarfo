@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,8 @@ export default function AddFoodModal({ open, onOpenChange, onAdded }) {
   const [price, setPrice] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [lat, setLat] = useState("");
+  const [lng, setLng] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Use Textarea component if available, otherwise use fallback
@@ -66,6 +69,8 @@ export default function AddFoodModal({ open, onOpenChange, onAdded }) {
     setPrice("");
     setImageFile(null);
     setImagePreview(null);
+    setLat("");
+    setLng("");
   };
 
   async function handleSubmit(e) {
@@ -92,6 +97,8 @@ export default function AddFoodModal({ open, onOpenChange, onAdded }) {
       formData.append("quantity", quantity);
       formData.append("sellingPrice", price);
       if (imageFile) formData.append("photo", imageFile);
+      if (lat) formData.append("lat", lat);
+      if (lng) formData.append("lng", lng);
 
       const { data } = await api.post("/hotel/food/add", formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -149,8 +156,8 @@ export default function AddFoodModal({ open, onOpenChange, onAdded }) {
             >
               <option value="">Select category</option>
               {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
                 </option>
               ))}
             </select>
@@ -239,11 +246,25 @@ export default function AddFoodModal({ open, onOpenChange, onAdded }) {
             </label>
           </div>
 
+          {/* Location (for route optimizer) */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="lat" className="text-xs font-semibold text-[var(--text-color)]">Latitude</Label>
+              <Input id="lat" type="number" step="any" placeholder="e.g., 19.0760"
+                value={lat} onChange={(e) => setLat(e.target.value)}
+                className="rounded-xl border-[rgba(0,0,0,0.1)] bg-[var(--bg-color-light)] h-10 text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="lng" className="text-xs font-semibold text-[var(--text-color)]">Longitude</Label>
+              <Input id="lng" type="number" step="any" placeholder="e.g., 72.8777"
+                value={lng} onChange={(e) => setLng(e.target.value)}
+                className="rounded-xl border-[rgba(0,0,0,0.1)] bg-[var(--bg-color-light)] h-10 text-sm" />
+            </div>
+          </div>
+
           {/* Notes */}
           <div className="space-y-1.5">
-            <Label htmlFor="notes" className="text-xs font-semibold text-[var(--text-color)]">
-              Notes (optional)
-            </Label>
+            <Label htmlFor="notes" className="text-xs font-semibold text-[var(--text-color)]">Notes (optional)</Label>
             <TextAreaComp
               id="notes"
               placeholder="Any additional info about the food, allergens, serving suggestions..."

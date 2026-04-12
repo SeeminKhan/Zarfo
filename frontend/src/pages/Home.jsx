@@ -1,208 +1,223 @@
-// src/pages/Home.jsx
-import React, { useState, useRef } from "react";
-import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import {
-  Building2,
-  Truck,
-  Handshake,
-  ShoppingBag,
-  Feather,
-} from "lucide-react";
+import { motion } from "framer-motion";
+import { Building2, Truck, Handshake, ShoppingBag, Feather, ChefHat, ArrowRight, Leaf, Zap, Heart } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import heroVideo from "../assets/hero.mp4";
+
+const roles = [
+  {
+    icon: Building2,
+    title: "Hotel Partner",
+    desc: "List surplus food, set pickup times, and track instant CSR metrics and tax savings.",
+    color: "from-green-400 to-emerald-500",
+    bg: "bg-green-50",
+    iconColor: "text-green-600",
+  },
+  {
+    icon: Feather,
+    title: "Night Robin",
+    desc: "Accept optimized AI delivery routes to pick up surplus food and drop it off at designated points.",
+    color: "from-sky-400 to-blue-500",
+    bg: "bg-sky-50",
+    iconColor: "text-sky-600",
+  },
+  {
+    icon: Truck,
+    title: "Night Worker",
+    desc: "Request and receive warm meals directly. Confirm delivery and provide quality feedback.",
+    color: "from-amber-400 to-orange-500",
+    bg: "bg-amber-50",
+    iconColor: "text-amber-600",
+  },
+  {
+    icon: ShoppingBag,
+    title: "Customer",
+    desc: "Purchase discounted, high-quality surplus meals through flash deals before they expire.",
+    color: "from-violet-400 to-purple-500",
+    bg: "bg-violet-50",
+    iconColor: "text-violet-600",
+  },
+];
+
+const stats = [
+  { value: "120+", label: "Hotels onboarded" },
+  { value: "50k+", label: "Meals saved"       },
+  { value: "300+", label: "Night Robins"      },
+  { value: "10k+", label: "Workers fed"       },
+];
+
+const features = [
+  { icon: Zap,    title: "AI-Powered Pricing",    desc: "Our model analyzes shelf life and demand to set optimal prices in real time."    },
+  { icon: Leaf,   title: "Zero Waste Mission",     desc: "Every listing is tracked from kitchen to delivery, minimizing food waste."       },
+  { icon: Heart,  title: "Community First",        desc: "Night workers receive free meals. Hotels earn CSR credits. Everyone wins."       },
+];
 
 export default function Home() {
   const navigate = useNavigate();
 
- const roles = [
-    {
-      icon: <Building2 className="w-10 h-10 text-[#16a34a]" />,
-      title: "Hotel Partner",
-      desc: "List surplus food, set pickup times, and track instant CSR metrics and tax savings.",
-      color: "#d1fae5",
-    },
-    {
-      icon: <Feather className="w-10 h-10 text-[#0ea5e9]" />,
-      title: "Night Robin",
-      desc: "Accept optimized delivery routes to pick up surplus food and drop it off at designated points.",
-      color: "#cffafe",
-    },
-    {
-      icon: <Truck className="w-10 h-10 text-[#f59e0b]" />,
-      title: "Night Worker",
-      desc: "Request and receive warm meals directly. Confirm delivery and provide quality feedback.",
-      color: "#fef9c3",
-    },
-    {
-      icon: <ShoppingBag className="w-10 h-10 text-[#8b5cf6]" />,
-      title: "Customer (User)",
-      desc: "Purchase discounted, high-quality surplus meals through flash deals before they're redistributed.",
-      color: "#ede9fe",
-    },
-  ];
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 50 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-  };
-   const [visible, setVisible] = useState([]);
-  const itemsRef = useRef([]);
-  const countersRef = useRef([]);
-
-  const animateCount = (index, target) => {
-    const startTime = performance.now();
-    const duration = 1200;
-    const step = (currentTime) => {
-      const progress = Math.min((currentTime - startTime) / duration, 1);
-      const value = Math.floor(progress * target);
-      if (countersRef.current[index])
-        countersRef.current[index].textContent = `${value}${milestones[index].unit}`;
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  };
-
   return (
-    <div className="bg-[var(--bg-color)] text-[var(--text-color)] min-h-screen overflow-hidden font-sans">
-      {/* Navbar */}
-      <header className="fixed w-full z-50 flex justify-between items-center px-6 md:px-12 py-4 backdrop-blur-md ">
-        <h1 className="text-3xl font-extrabold tracking-tight text-[var(--green-primary)]">
-          
-        </h1>
-        <div className="flex items-center gap-4 md:gap-6">
-          <button className="bg-[var(--green-primary)] text-[var(--bg-color)] font-semibold px-5 py-2 rounded-lg hover:bg-[var(--green-primary)]/80 transition-all shadow-md shadow-[var(--green-primary)]/20" onClick={() => navigate("/login")}>
-            Login
+    <div className="bg-[var(--bg-color)] text-[var(--text-color)] min-h-screen overflow-x-hidden font-sans">
+
+      {/* ── Navbar ──────────────────────────────────────────────────── */}
+      <header className="fixed w-full z-50 flex justify-between items-center px-6 md:px-12 py-4 backdrop-blur-md bg-[var(--bg-color)]/60 border-b border-[rgba(0,0,0,0.06)]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--green-primary)] to-[var(--green-dark)] flex items-center justify-center shadow-md">
+            <ChefHat className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-xl font-black text-[var(--green-primary)] tracking-tight">Zarfo</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <button onClick={() => navigate("/login")}
+            className="text-sm font-semibold text-[var(--text-color)] hover:text-[var(--green-primary)] transition-colors px-3 py-1.5">
+            Sign In
           </button>
-          <button className="border border-[var(--green-primary)] text-[var(--green-primary)] font-semibold px-5 py-2 rounded-lg hover:bg-[var(--green-primary)]/10 transition-all" onClick={() => navigate("/register")}>
-            
-            Register
+          <button onClick={() => navigate("/register")}
+            className="bg-[var(--green-primary)] text-white text-sm font-bold px-5 py-2 rounded-xl hover:bg-[var(--green-dark)] transition-colors shadow-md shadow-[var(--green-primary)]/25">
+            Get Started
           </button>
-           <ThemeToggle />
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative h-screen w-full flex items-center justify-center text-center pt-24">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover "
+      {/* ── Hero — full-screen video ─────────────────────────────────── */}
+      <section className="relative h-screen w-full flex items-end justify-center pb-16">
+        <video autoPlay loop muted playsInline
+          className="absolute inset-0 w-full h-full object-cover"
           src={heroVideo}
         />
-       
-      </section>
+        {/* Gradient overlay at bottom for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-      {/* About Section */}
-      <section id="about" className="py-24 px-6 md:px-20 bg-[var(--bg-secondary)]">
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="max-w-6xl mx-auto text-center"
-        >
-          <h3 className="text-sm font-semibold tracking-widest uppercase text-[var(--green-primary)] mb-3">
-            The Smart Redistribution Engine
-          </h3>
-          <h4 className="text-4xl md:text-5xl font-bold mb-6 text-[var(--text-color)]">
-            We Connect Surplus to <span className="text-[var(--green-primary)]">Need</span>.
-          </h4>
-          <p className="text-lg leading-relaxed text-[var(--muted-text)] max-w-3xl mx-auto">
-            Our platform uses an advanced AI Agent to analyze food shelf life, location
-            logistics, and real-time demand from both discounted customers and Night Workers,
-            ensuring every meal is utilized before its expiry.
-          </p>
-        </motion.div>
-      </section>
-
-      {/* Roles Section */}
-      {/* Roles Section */}
-<section className="relative py-20 bg-[var(--bg-color)] overflow-hidden">
-  <h2 className="text-4xl md:text-5xl font-bold mb-6 text-[var(--text-color)] text-center">
-    What can your Role be at Zarfo
-  </h2>
-
-  {/* Timeline vertical line starts after heading */}
-  <div className="absolute left-1/2 top-40 h-[calc(100%-7rem)] w-1 bg-gradient-to-b from-[var(--green-primary)]/40 via-[var(--green-primary)]/20 to-transparent transform -translate-x-1/2" />
-
-  <div className="relative flex flex-col gap-20 max-w-4xl mx-auto">
-    {roles.map((role, index) => {
-      const isLeft = index % 2 === 0;
-      return (
-        <motion.div
-          key={index}
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: index * 0.2 }}
-          viewport={{ once: true }}
-          className={`relative flex items-center justify-between ${
-            isLeft ? "flex-row" : "flex-row-reverse"
-          }`}
-        >
-          {/* Role Card */}
-          <div
-            className={`w-[45%] p-6 rounded-2xl shadow-md backdrop-blur-md border border-[var(--green-primary)]/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}
-            
-          >
-            <div className="flex items-center gap-4 mb-3">
-              <div className="p-2 rounded-full bg-white/20 hover:scale-110 transition-transform">
-                {role.icon}
-              </div>
-              <h3 className="text-xl font-semibold text-[var(--text-color)]">
-                {role.title}
-              </h3>
-            </div>
-            <p className="text-[var(--muted-text)] leading-relaxed">{role.desc}</p>
+        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.3 }}
+          className="relative z-10 text-center px-6 max-w-3xl mx-auto">
+        
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button onClick={() => navigate("/register")}
+              className="flex items-center gap-2 bg-[var(--green-primary)] text-white font-bold px-7 py-3 rounded-2xl hover:bg-[var(--green-dark)] transition-colors shadow-xl shadow-[var(--green-primary)]/40">
+              Join Zarfo <ArrowRight className="w-4 h-4" />
+            </button>
+            <button onClick={() => navigate("/login")}
+              className="flex items-center gap-2 bg-white/15 border border-white/25 text-white font-semibold px-7 py-3 rounded-2xl hover:bg-white/20 transition-colors backdrop-blur-sm">
+              Sign In
+            </button>
           </div>
-
-          {/* Horizontal connector */}
-          <div
-            className={`absolute top-1/2 w-8 h-1 bg-[var(--green-primary)] ${
-              isLeft ? "left-[50%] -translate-x-full" : "right-[50%] -translate-x-0"
-            } hidden md:block`}
-          />
-
-          {/* Center dot */}
-          <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[var(--green-primary)] rounded-full w-5 h-5 border-4 border-[var(--bg-color)] shadow-lg animate-pulse" />
         </motion.div>
-      );
-    })}
-  </div>
-</section>
+      </section>
 
-
-      {/* CTA Section */}
-      <section className="py-20 text-center bg-[var(--green-primary)] text-[var(--bg-color)]">
-        <motion.h3
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
-          className="text-4xl font-bold mb-8"
-        >
-          Ready to make your surplus count?
-        </motion.h3>
-        <div className="flex justify-center gap-6">
-          <button className="bg-[var(--bg-color)] text-[var(--green-primary)] font-bold px-8 py-3 rounded-full hover:scale-105 transition-transform shadow-lg" onClick={() => navigate("/register")}>
-            
-            Register Your Role
-          </button>
+      {/* ── Stats bar ────────────────────────────────────────────────── */}
+      <section className="bg-[var(--green-primary)] py-10">
+        <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 px-6">
+          {stats.map((s, i) => (
+            <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }} viewport={{ once: true }} className="text-center">
+              <p className="text-3xl font-black text-white">{s.value}</p>
+              <p className="text-white/70 text-xs mt-1 font-medium">{s.label}</p>
+            </motion.div>
+          ))}
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 text-center text-sm bg-[var(--bg-secondary)] text-[var(--muted-text)] border-t border-[var(--green-primary)]/10">
-        © {new Date().getFullYear()} Zarfo. AI-Powered Food Logistics.
+      {/* ── About ────────────────────────────────────────────────────── */}
+      <section className="py-24 px-6 md:px-20 bg-[var(--bg-color)]">
+        <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }} viewport={{ once: true }}
+          className="max-w-5xl mx-auto text-center">
+          <p className="text-xs font-bold tracking-widest uppercase text-[var(--green-primary)] mb-3">The Smart Redistribution Engine</p>
+          <h2 className="text-4xl md:text-5xl font-black mb-6 text-[var(--text-color)] leading-tight">
+            We Connect Surplus to <span className="text-[var(--green-primary)]">Need</span>.
+          </h2>
+          <p className="text-lg leading-relaxed text-[var(--muted-text)] max-w-3xl mx-auto">
+            Our platform uses an advanced AI Agent to analyze food shelf life, location logistics, and real-time demand — ensuring every meal is utilized before its expiry.
+          </p>
+        </motion.div>
+
+        {/* Feature cards */}
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mt-14">
+          {features.map((f, i) => {
+            const Icon = f.icon;
+            return (
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }} viewport={{ once: true }}
+                className="bg-[var(--card-bg)] rounded-2xl p-6 border border-[rgba(0,0,0,0.05)] shadow-sm hover:shadow-md transition-all">
+                <div className="w-11 h-11 rounded-2xl bg-[var(--green-primary)]/10 flex items-center justify-center mb-4">
+                  <Icon className="w-5 h-5 text-[var(--green-primary)]" />
+                </div>
+                <h3 className="text-base font-bold text-[var(--text-color)] mb-2">{f.title}</h3>
+                <p className="text-sm text-[var(--muted-text)] leading-relaxed">{f.desc}</p>
+              </motion.div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ── Roles timeline ───────────────────────────────────────────── */}
+      <section className="py-20 px-6 bg-[var(--bg-color-light)] relative overflow-hidden">
+        <div className="max-w-5xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="text-center mb-14">
+            <p className="text-xs font-bold tracking-widest uppercase text-[var(--green-primary)] mb-3">Roles</p>
+            <h2 className="text-4xl md:text-5xl font-black text-[var(--text-color)]">What's your role at Zarfo?</h2>
+          </motion.div>
+
+          {/* Timeline */}
+          <div className="relative">
+            <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-[var(--green-primary)]/40 via-[var(--green-primary)]/20 to-transparent -translate-x-1/2 hidden md:block" />
+            <div className="space-y-12">
+              {roles.map((role, i) => {
+                const Icon = role.icon;
+                const isLeft = i % 2 === 0;
+                return (
+                  <motion.div key={i} initial={{ opacity: 0, x: isLeft ? -30 : 30 }}
+                    whileInView={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: i * 0.1 }}
+                    viewport={{ once: true }}
+                    className={`relative flex items-center gap-8 ${isLeft ? "md:flex-row" : "md:flex-row-reverse"} flex-col`}>
+                    {/* Card */}
+                    <div className="md:w-5/12 bg-[var(--card-bg)] rounded-2xl p-6 border border-[rgba(0,0,0,0.05)] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+                      <div className={`w-12 h-12 rounded-2xl ${role.bg} flex items-center justify-center mb-4`}>
+                        <Icon className={`w-6 h-6 ${role.iconColor}`} />
+                      </div>
+                      <h3 className="text-lg font-bold text-[var(--text-color)] mb-2">{role.title}</h3>
+                      <p className="text-sm text-[var(--muted-text)] leading-relaxed">{role.desc}</p>
+                    </div>
+                    {/* Center dot */}
+                    <div className="hidden md:flex md:w-2/12 justify-center">
+                      <div className={`w-5 h-5 rounded-full bg-gradient-to-br ${role.color} border-4 border-[var(--bg-color-light)] shadow-lg`} />
+                    </div>
+                    <div className="md:w-5/12" />
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA ──────────────────────────────────────────────────────── */}
+      <section className="py-24 px-6 bg-gradient-to-br from-[var(--green-dark)] to-[var(--green-primary)] text-white text-center relative overflow-hidden">
+        <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full bg-black/10 blur-3xl pointer-events-none" />
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }} viewport={{ once: true }} className="relative z-10 max-w-2xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-black mb-4 leading-tight">Ready to make your surplus count?</h2>
+          <p className="text-white/70 text-base mb-8 leading-relaxed">
+            Join hundreds of hotels, volunteers, and workers already using Zarfo every night.
+          </p>
+          <button onClick={() => navigate("/register")}
+            className="inline-flex items-center gap-2 bg-white text-[var(--green-dark)] font-black px-8 py-3.5 rounded-2xl hover:bg-green-50 transition-colors shadow-xl text-sm">
+            Register Your Role <ArrowRight className="w-4 h-4" />
+          </button>
+        </motion.div>
+      </section>
+
+      {/* ── Footer ───────────────────────────────────────────────────── */}
+      <footer className="py-8 text-center text-sm bg-[var(--bg-color)] text-[var(--muted-text)] border-t border-[rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[var(--green-primary)] to-[var(--green-dark)] flex items-center justify-center">
+            <ChefHat className="w-3.5 h-3.5 text-white" />
+          </div>
+          <span className="font-bold text-[var(--text-color)]">Zarfo</span>
+        </div>
+        <p>© {new Date().getFullYear()} Zarfo. AI-Powered Food Logistics.</p>
       </footer>
     </div>
   );

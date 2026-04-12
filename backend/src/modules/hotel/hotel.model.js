@@ -7,6 +7,11 @@ const foodSchema = new mongoose.Schema({
     ref: 'User', // Reference the User model for the hotel user
     required: true,
   },
+  // Geo-coordinates of the hotel at listing time
+  location: {
+    lat: { type: Number, default: null },
+    lng: { type: Number, default: null },
+  },
   photo: {
     type: String, // URL of the food photo
     required: true,
@@ -55,5 +60,9 @@ const foodSchema = new mongoose.Schema({
     default: true,
   }
 }, { timestamps: true });
+
+// Compound index for the route optimizer query: active donations sorted by expiry
+foodSchema.index({ isAvailable: 1, decision: 1, expiryTime: 1 });
+foodSchema.index({ hotelId: 1, status: 1 });
 
 export default mongoose.model('Food', foodSchema);
