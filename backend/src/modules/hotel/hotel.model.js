@@ -13,8 +13,8 @@ const foodSchema = new mongoose.Schema({
     lng: { type: Number, default: null },
   },
   photo: {
-    type: String, // URL of the food photo
-    required: true,
+    type: String,
+    default: "",   // empty for seeded/test data; UI handles missing photos gracefully
   },
   name: {
     type: String,

@@ -9,7 +9,7 @@
  *   - scoring now includes robin→worker average distance
  */
 
-import { scoreHotel, haversineKm } from "./scorer.js";
+import { scoreHotel, haversineKm, DEMAND_RADIUS_KM } from "./scorer.js";
 import { buildAllRoutes }          from "./routerBuilder.js";
 import { getDistance }             from "./googleMaps.js";
 
@@ -88,6 +88,11 @@ export async function optimizeRoute(robin, hotels, workers, workersByFood = {}) 
     }
 
     console.log(`[optimizer] "${hotel.name}" → ${sorted.length} worker(s) matched (${foodWorkers.length} total requests)`);
+    sorted.forEach(({ worker, km }) => {
+      if (km > DEMAND_RADIUS_KM) {
+        console.log(`[optimizer]   MATCH FALLBACK: Worker ${worker._id} is ${km.toFixed(2)}km away (preferred < ${DEMAND_RADIUS_KM}km)`);
+      }
+    });
     return { hotel, distanceKm, scores, matchedWorkers: sorted.map((s) => s.worker) };
   });
 

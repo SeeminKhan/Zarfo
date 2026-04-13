@@ -126,8 +126,8 @@ export const getOptimizedRoutes = async (req, res, next) => {
     console.log(`[optimizedRoute] Optimizer returned ${routes.length} route(s).`);
 
     if (!routes.length) {
-      console.warn(`[optimizedRoute] Optimizer returned 0 routes — likely no workers within 5km of any hotel.`);
-      console.warn(`[optimizedRoute] Check: hotel locations vs worker locations vs MATCH_RADIUS_KM=5`);
+      console.warn(`[optimizedRoute] Optimizer returned 0 routes — likely no available requests or they could not be connected via road network.`);
+      console.warn(`[optimizedRoute] Check: food availability vs pending NightWorkerRequests.`);
     }
 
     routes.forEach((r, i) => {

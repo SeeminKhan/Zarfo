@@ -17,9 +17,9 @@ const WEIGHTS = {
 };
 
 const EXPIRY_WINDOW_MINUTES = 120;
-const MAX_DISTANCE_KM       = 20;
+const MAX_DISTANCE_KM       = 50;
 const MAX_QUANTITY          = 100;
-export const DEMAND_RADIUS_KM = 5; // kept for backward compat
+export const DEMAND_RADIUS_KM = 5; // preferred radius (for logging/intent)
 
 function clamp(v) { return Math.min(1, Math.max(0, v)); }
 
@@ -30,7 +30,10 @@ function computeExpiryScore(expiryTime) {
 }
 
 function computeDistanceScore(distanceKm) {
-  return clamp(1 - distanceKm / MAX_DISTANCE_KM);
+  // We use a linear decay up to MAX_DISTANCE_KM, 
+  // but we clamp at 0.01 instead of 0 for very far points 
+  // to ensure they still have a non-zero priority for the "closest one" fallback.
+  return Math.max(0.01, clamp(1 - distanceKm / MAX_DISTANCE_KM));
 }
 
 function computeQuantityScore(quantity) {

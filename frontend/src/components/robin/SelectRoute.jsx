@@ -96,43 +96,45 @@ export default function SelectRoute({ onStartRoute }) {
     }
   }, []);
 
-  // ── set robin location via browser geolocation ───────────────────────────
-  const setLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported by your browser.");
-      console.error("[SelectRoute] Geolocation API not available.");
-      return;
-    }
-
+  // ── set robin location via geocoding their registered address ──────────
+  const setLocation = async () => {
     setLocating(true);
-    console.log("[SelectRoute] Requesting browser geolocation...");
-
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude: lat, longitude: lng } = pos.coords;
-        console.log(`[SelectRoute] Got location: lat=${lat}, lng=${lng}`);
-
-        try {
-          await api.patch("/auth/location", { lat, lng });
-          console.log("[SelectRoute] Location saved to backend successfully.");
-          toast.success("Location updated. Fetching routes...");
-          setLocationSet(true);
-          fetchRoutes();
-        } catch (err) {
-          const msg = err.response?.data?.error || err.message || "Failed to save location";
-          console.error("[SelectRoute] Failed to save location:", msg, err);
-          toast.error(msg);
-        } finally {
-          setLocating(false);
-        }
-      },
-      (geoErr) => {
-        console.error("[SelectRoute] Geolocation error:", geoErr.message);
-        toast.error(`Location error: ${geoErr.message}`);
+    console.log("[SelectRoute] Re-geocoding robin's registered address...");
+    try {
+      const { data } = await api.post("/auth/geocode-address");
+      console.log("[SelectRoute] Location updated:", data.location);
+      toast.success("Location updated from your address. Fetching routes...");
+      setLocationSet(true);
+      fetchRoutes();
+    } catch (err) {
+      // Fallback to browser geolocation if geocoding fails
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            try {
+              await api.patch("/auth/location", { lat: pos.coords.latitude, lng: pos.coords.longitude });
+              console.log(`[SelectRoute] GPS fallback saved: lat=${pos.coords.latitude}, lng=${pos.coords.longitude}`);
+              toast.success("Location set via GPS. Fetching routes...");
+              setLocationSet(true);
+              fetchRoutes();
+            } catch (locErr) {
+              toast.error("Could not save location: " + locErr.message);
+            } finally {
+              setLocating(false);
+            }
+          },
+          (geoErr) => {
+            console.error("[SelectRoute] GPS error:", geoErr.message);
+            toast.error("Could not determine location. Check your registered address.");
+            setLocating(false);
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      } else {
+        toast.error("Could not update location.");
         setLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+      }
+    }
   };
 
   // ── render ───────────────────────────────────────────────────────────────

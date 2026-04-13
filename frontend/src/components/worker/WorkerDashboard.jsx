@@ -85,24 +85,6 @@ export default function WorkerDashboard() {
 
   const requestFood = async (item) => {
     try {
-      // Save location FIRST and WAIT — ensures NightWorkerRequest gets correct location
-      if (navigator.geolocation) {
-        await new Promise((resolve) => {
-          navigator.geolocation.getCurrentPosition(
-            async (pos) => {
-              try {
-                await api.patch("/auth/location", { lat: pos.coords.latitude, lng: pos.coords.longitude });
-                console.log(`[WorkerDashboard] Location saved: lat=${pos.coords.latitude}, lng=${pos.coords.longitude}`);
-              } catch (locErr) {
-                console.warn("[WorkerDashboard] Could not save location:", locErr.message);
-              }
-              resolve();
-            },
-            (err) => { console.warn("[WorkerDashboard] Geolocation denied:", err.message); resolve(); },
-            { enableHighAccuracy: true, timeout: 5000 }
-          );
-        });
-      }
       console.log(`[WorkerDashboard] Requesting food: ${item._id} (${item.title})`);
       await api.post("/worker/order/create", { foodId: item._id });
       toast.success("Food requested! A robin will deliver it to you.");

@@ -2,6 +2,7 @@ import { registerUser, loginUser } from "./auth.service.js";
 import jwt from "jsonwebtoken";
 import User from "./auth.model.js";
 import { generateAccessToken } from "../../utils/token.js";
+import { geocodeAddress } from "../../utils/geocode.js";
 
 export const register = async (req, res) => {
   try {
@@ -66,9 +67,69 @@ export const getMe = async (req, res) => {
 };
 
 /**
+ * POST /api/auth/geocode-address  (protected)
+ * Re-geocodes the logged-in user's registered address and updates their location.
+ */
+export const geocodeMyAddress = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("address location").lean();
+    if (!user?.address) {
+      return res.status(400).json({ error: "No address on file to geocode." });
+    }
+
+    const loc = await geocodeAddress(user.address);
+    if (!loc) {
+      return res.status(422).json({ error: "Could not geocode your address. Please check it is correct." });
+    }
+
+    await User.updateOne({ _id: req.user._id }, { $set: { location: loc } });
+    console.log(`[auth/geocode-address] Updated location for ${req.user.email}: lat=${loc.lat}, lng=${loc.lng}`);
+    res.json({ message: "Location updated from address.", location: loc });
+  } catch (err) {
+    console.error("[auth/geocode-address] Error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * POST /api/auth/geocode-all  (admin only — one-time backfill)
+ * Geocodes all existing users who have an address but no location.
+ */
+export const geocodeAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({
+      $or: [
+        { "location.lat": null },
+        { "location.lat": { $exists: false } },
+      ],
+      "address.city": { $exists: true, $ne: "" },
+    }).select("name email address location");
+
+    console.log(`[geocode-all] Found ${users.length} users without location.`);
+
+    let updated = 0;
+    for (const user of users) {
+      const loc = await geocodeAddress(user.address);
+      if (loc) {
+        await User.updateOne({ _id: user._id }, { $set: { location: loc } });
+        console.log(`[geocode-all] Updated ${user.email}: lat=${loc.lat}, lng=${loc.lng}`);
+        updated++;
+      }
+      // Nominatim rate limit: 1 req/sec
+      await new Promise((r) => setTimeout(r, 1100));
+    }
+
+    res.json({ message: `Geocoded ${updated}/${users.length} users.` });
+  } catch (err) {
+    console.error("[geocode-all] Error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
  * PATCH /api/auth/location
  * Body: { lat: number, lng: number }
- * Updates the authenticated user's location — used by robins before route optimisation.
+ * Updates the authenticated user's location.
  */
 export const updateLocation = async (req, res) => {
   try {
