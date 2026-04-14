@@ -207,6 +207,7 @@ export default function MyRequests() {
           onRated={fetchOrders}
         />
       )}
+      {activeOrders.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
