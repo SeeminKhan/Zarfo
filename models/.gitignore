@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+mpenv/
+venv/
+env/
+ENV/
+*.ipynb_checkpoints
+.DS_Store
+*.log
+
+# Large ML model files - deploy separately
+zarfo_regressor_pipeline.pkl
+zarfo_classifier_pipeline.pkl
+zarfo_label_encoder.pkl
