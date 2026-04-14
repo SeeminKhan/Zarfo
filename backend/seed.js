@@ -25,6 +25,14 @@ const COORDS = { lat: 19.076, lng: 72.877 };
 
 const ACCOUNTS = [
   {
+    name:     "Zarfo Admin",
+    email:    "admin@zarfo.com",
+    password: "demo1234",
+    role:     "admin",
+    address:  { houseNo: "1", suburb: "BKC", city: "Mumbai", state: "Maharashtra" },
+    location: { lat: 19.076, lng: 72.877 },
+  },
+  {
     name:     "The Grand Hotel",
     email:    "demo.hotel@zarfo.com",
     password: "demo1234",

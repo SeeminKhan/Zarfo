@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import api from "@/lib/api";
 import { toast } from "react-toastify";
+import NotificationBell from "@/components/NotificationBell";
 import FoodCard from "@/components/user/FoodCard";
 import CartPage from "@/components/user/CartPage";
 import MyOrdersPage from "@/components/user/MyOrders";
@@ -148,8 +149,7 @@ export default function UserDashboard() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
-
-            {/* Cart badge */}
+            <NotificationBell />
             <button
               onClick={() => setActivePage("cart")}
               className="relative w-9 h-9 rounded-xl flex items-center justify-center text-[var(--muted-text)] hover:bg-[var(--bg-color-light)] hover:text-[var(--text-color)] transition-all"
@@ -162,7 +162,7 @@ export default function UserDashboard() {
               )}
             </button>
 
-            <button className="relative w-9 h-9 rounded-xl flex items-center justify-center text-[var(--muted-text)] hover:bg-[var(--bg-color-light)] transition-all">
+            <button className="relative w-9 h-9 rounded-xl flex items-center justify-center text-[var(--muted-text)] hover:bg-[var(--bg-color-light)] transition-all" style={{display:"none"}}>
               <Bell size={17} />
             </button>
 
@@ -221,6 +221,31 @@ export default function UserDashboard() {
                 exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
                 className="space-y-5 max-w-7xl mx-auto"
               >
+                {/* Hero banner */}
+                <div className="rounded-2xl bg-gradient-to-r from-[var(--green-primary)] to-[var(--green-dark)] p-5 sm:p-6 text-white relative overflow-hidden">
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
+                    <div className="absolute -bottom-10 -left-6 w-48 h-48 rounded-full bg-white/5" />
+                  </div>
+                  <div className="relative z-10 flex items-center justify-between gap-4">
+                    <div>
+                      <div className="inline-flex items-center gap-2 bg-white/15 border border-white/20 rounded-full px-3 py-1 mb-3">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-300 animate-pulse" />
+                        <span className="text-white/80 text-[11px] font-semibold tracking-wide uppercase">Flash Deals Live</span>
+                      </div>
+                      <h2 className="text-lg sm:text-xl font-bold leading-tight">
+                        Good evening, {user?.name?.split(" ")[0] || "there"}
+                      </h2>
+                      <p className="text-white/70 text-xs mt-1.5 max-w-xs leading-relaxed">
+                        {listings.length} discounted meal{listings.length !== 1 ? "s" : ""} available from nearby hotels. Grab them before they expire.
+                      </p>
+                    </div>
+                    <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                      <ShoppingCart className="w-7 h-7 text-white" />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Search + filters */}
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="relative flex-1">

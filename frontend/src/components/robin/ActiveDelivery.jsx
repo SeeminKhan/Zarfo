@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   MapPin, Clock, Navigation, Phone, Camera, CheckCircle2,
-  Package, User, Truck, Loader2, AlertTriangle,
+  Package, User, Truck, Loader2, AlertTriangle, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import api from "@/lib/api";
 
@@ -13,6 +13,8 @@ export default function ActiveDelivery({ route }) {
   const [loading, setLoading]       = useState(true);
   const [pickupLoading, setPickupLoading]     = useState(false);
   const [completeLoading, setCompleteLoading] = useState(false);
+  const [photoUploading, setPhotoUploading]   = useState(false);
+  const fileInputRef = useRef(null);
 
   // Load active delivery from backend on mount (handles page refresh)
   useEffect(() => {
@@ -46,8 +48,7 @@ export default function ActiveDelivery({ route }) {
   const handleConfirmPickup = async () => {
     const deliveryId = delivery?._id ?? delivery?.deliveryId;
     if (!deliveryId) { toast.error("No delivery ID found."); return; }
-    setPickupLoading(true);
-    try {
+    setPickupLoading(true);    try {
       const { data } = await api.post("/delivery/tasks/pickup", { deliveryId });
       console.log("[ActiveDelivery] Pickup confirmed:", data.delivery._id);
       setDelivery((prev) => ({ ...prev, status: "picked_up", _id: data.delivery._id }));
@@ -77,6 +78,37 @@ export default function ActiveDelivery({ route }) {
     } finally {
       setCompleteLoading(false);
     }
+  };
+
+  const handlePhotoUpload = (type) => {
+    const deliveryId = delivery?._id ?? delivery?.deliveryId;
+    if (!deliveryId) { toast.error("No delivery ID."); return; }
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.capture = "environment";
+    input.onchange = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setPhotoUploading(true);
+      try {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          try {
+            await api.post("/delivery/tasks/photo", { deliveryId, type, photo: reader.result });
+            toast.success(`${type === "pickup" ? "Pickup" : "Delivery"} photo uploaded.`);
+          } catch (err) {
+            toast.error(err.response?.data?.error || "Failed to upload photo");
+          } finally {
+            setPhotoUploading(false);
+          }
+        };
+        reader.readAsDataURL(file);
+      } catch {
+        setPhotoUploading(false);
+      }
+    };
+    input.click();
   };
 
   if (loading) {
@@ -190,8 +222,9 @@ export default function ActiveDelivery({ route }) {
             <Button variant="outline" size="sm" className="h-9 text-xs rounded-xl border-[rgba(0,0,0,0.1)] gap-1.5">
               <Phone className="w-3.5 h-3.5" />Call Hotel
             </Button>
-            <Button variant="outline" size="sm" className="h-9 text-xs rounded-xl border-[rgba(0,0,0,0.1)] gap-1.5">
-              <Camera className="w-3.5 h-3.5" />Photo
+            <Button onClick={() => handlePhotoUpload("pickup")} disabled={photoUploading} variant="outline" size="sm" className="h-9 text-xs rounded-xl border-[rgba(0,0,0,0.1)] gap-1.5">
+              {photoUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+              Photo
             </Button>
             <Button onClick={handleConfirmPickup} disabled={pickupLoading} size="sm"
               className="h-9 text-xs rounded-xl bg-blue-500 hover:bg-blue-600 text-white border-0 gap-1.5">
@@ -227,8 +260,9 @@ export default function ActiveDelivery({ route }) {
               <Button variant="outline" size="sm" className="h-9 text-xs rounded-xl border-[rgba(0,0,0,0.1)] gap-1.5">
                 <Phone className="w-3.5 h-3.5" />Call
               </Button>
-              <Button variant="outline" size="sm" className="h-9 text-xs rounded-xl border-[rgba(0,0,0,0.1)] gap-1.5">
-                <Camera className="w-3.5 h-3.5" />Photo
+              <Button onClick={() => handlePhotoUpload("delivery")} disabled={photoUploading} variant="outline" size="sm" className="h-9 text-xs rounded-xl border-[rgba(0,0,0,0.1)] gap-1.5">
+                {photoUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                Photo
               </Button>
               {i === dropSteps.length - 1 && (
                 <Button onClick={handleCompleteDelivery} disabled={completeLoading} size="sm"

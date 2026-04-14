@@ -61,6 +61,10 @@ const deliverySchema = new mongoose.Schema(
 
     pickedUpAt:  { type: Date, default: null },
     deliveredAt: { type: Date, default: null },
+
+    // Photo proof uploaded by robin
+    pickupProof:   { type: String, default: null },  // base64 or URL
+    deliveryProof: { type: String, default: null },
   },
   { timestamps: true }
 );

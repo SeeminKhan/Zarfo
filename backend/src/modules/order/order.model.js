@@ -53,6 +53,22 @@ const orderSchema = new mongoose.Schema(
     },
 
     notes: String,
+
+    // User/worker rating after delivery
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: null,
+    },
+    ratingComment: {
+      type: String,
+      default: null,
+    },
+    ratedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

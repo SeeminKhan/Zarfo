@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Truck, Clock, CheckCircle2, Package, Navigation, Phone, Loader2, ClipboardList, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import api from "@/lib/api";
+import { toast } from "react-toastify";
+import RatingModal from "@/components/shared/RatingModal";
 
 const getStatusConfig = (status) => {
   switch (status?.toLowerCase()) {
@@ -22,8 +24,9 @@ const openTrack = (robinLocation) => {
 };
 
 export default function MyRequests() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders]           = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [ratingOrder, setRatingOrder] = useState(null);
 
   const fetchOrders = async () => {
     try {
@@ -39,11 +42,11 @@ export default function MyRequests() {
 
   useEffect(() => { fetchOrders(); }, []);
 
-  // Auto-refresh every 30s when there are active requests
+  // Poll every 15s when there are active requests
   useEffect(() => {
     const hasActive = orders.some((o) => o.status !== "delivered" && o.status !== "cancelled");
     if (!hasActive) return;
-    const interval = setInterval(fetchOrders, 30000);
+    const interval = setInterval(fetchOrders, 15000);
     return () => clearInterval(interval);
   }, [orders]);
 
@@ -161,13 +164,30 @@ export default function MyRequests() {
                     className="h-8 text-xs rounded-xl border-[rgba(0,0,0,0.1)] gap-1.5">
                     <Navigation className="w-3.5 h-3.5" />Track
                   </Button>
-                  <Button variant="outline" size="sm" className="h-8 text-xs rounded-xl border-[rgba(0,0,0,0.1)] gap-1.5">
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const { data } = await api.get(`/delivery/contact/${order._id}`);
+                        if (data.robin?.location?.lat) {
+                          window.open(`https://www.google.com/maps?q=${data.robin.location.lat},${data.robin.location.lng}`, "_blank");
+                        } else {
+                          toast.info(data.message || "Robin not yet assigned.");
+                        }
+                      } catch { toast.error("Could not fetch contact info."); }
+                    }}
+                    variant="outline" size="sm" className="h-8 text-xs rounded-xl border-[rgba(0,0,0,0.1)] gap-1.5">
                     <Phone className="w-3.5 h-3.5" />Contact
                   </Button>
                 </>
               ) : (
-                <Button variant="outline" size="sm" className="h-8 text-xs rounded-xl border-[rgba(0,0,0,0.1)] gap-1.5">
-                  <Star className="w-3.5 h-3.5" />Rate
+                <Button
+                  onClick={() => setRatingOrder({ _id: order._id, foodName: order.foodName })}
+                  variant="outline" size="sm"
+                  className="h-8 text-xs rounded-xl border-[rgba(0,0,0,0.1)] gap-1.5"
+                  disabled={order.rated}
+                >
+                  <Star className={`w-3.5 h-3.5 ${order.rated ? "text-yellow-400 fill-yellow-400" : ""}`} />
+                  {order.rated ? "Rated" : "Rate"}
                 </Button>
               )}
             </div>
@@ -179,7 +199,14 @@ export default function MyRequests() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      {activeOrders.length > 0 && (
+      {ratingOrder && (
+        <RatingModal
+          orderId={ratingOrder._id}
+          foodName={ratingOrder.foodName}
+          onClose={() => setRatingOrder(null)}
+          onRated={fetchOrders}
+        />
+      )}
         <div className="space-y-3">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />

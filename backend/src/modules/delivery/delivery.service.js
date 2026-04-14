@@ -74,13 +74,21 @@ export const confirmPickup = async (deliveryId, robinId) => {
   await delivery.save();
 
   // Sync Order status to "on_the_way" so user/worker can see it
+  // Update by stored IDs first, then broad fallback by foodId
   if (delivery.orderIds?.length) {
     await Order.updateMany(
       { _id: { $in: delivery.orderIds } },
       { $set: { status: "on_the_way", deliveryAgentId: robinId } }
     );
-    console.log(`[delivery.service] Orders updated to on_the_way: ${delivery.orderIds.length}`);
+    console.log(`[delivery.service] Orders updated to on_the_way by ID: ${delivery.orderIds.length}`);
   }
+
+  // Broad fallback — catches orders not in orderIds
+  const pickupFallback = await Order.updateMany(
+    { foodId: delivery.foodId, status: "pending_pickup" },
+    { $set: { status: "on_the_way", deliveryAgentId: robinId } }
+  );
+  console.log(`[delivery.service] Orders updated to on_the_way by foodId fallback: ${pickupFallback.modifiedCount}`);
 
   console.log(`[delivery.service] Pickup confirmed: delivery=${deliveryId}`);
   return delivery;
@@ -96,18 +104,31 @@ export const completeDelivery = async (deliveryId, robinId) => {
   delivery.deliveredAt = new Date();
   await delivery.save();
 
-  // Update all Orders to "delivered" — by stored IDs + fallback by userId+foodId
+  console.log(`[delivery.service] completeDelivery: deliveryId=${deliveryId}, orderIds=${JSON.stringify(delivery.orderIds)}, recipientIds=${JSON.stringify(delivery.recipientIds)}, foodId=${delivery.foodId}`);
+
+  // Update all Orders to "delivered" — by stored IDs first
   if (delivery.orderIds?.length) {
-    await Order.updateMany(
+    const r1 = await Order.updateMany(
       { _id: { $in: delivery.orderIds } },
       { $set: { status: "delivered", deliveryTime: new Date(), deliveryAgentId: robinId } }
     );
-    console.log(`[delivery.service] Orders updated to delivered by ID: ${delivery.orderIds.length}`);
+    console.log(`[delivery.service] Orders updated by ID: ${r1.modifiedCount}`);
   }
 
-  // Fallback: update by userId + foodId to catch orders not in orderIds
+  // Broad fallback: find ALL pending/on_the_way orders for this food
+  // This catches cases where orderIds was empty at accept time
+  const broadFallback = await Order.updateMany(
+    {
+      foodId: delivery.foodId,
+      status: { $in: ["pending_pickup", "on_the_way"] },
+    },
+    { $set: { status: "delivered", deliveryTime: new Date(), deliveryAgentId: robinId } }
+  );
+  console.log(`[delivery.service] Orders updated by foodId broad fallback: ${broadFallback.modifiedCount}`);
+
+  // Also update by userId + foodId for extra safety
   if (delivery.recipientIds?.length && delivery.foodId) {
-    const fallback = await Order.updateMany(
+    const r2 = await Order.updateMany(
       {
         userId: { $in: delivery.recipientIds },
         foodId: delivery.foodId,
@@ -115,7 +136,7 @@ export const completeDelivery = async (deliveryId, robinId) => {
       },
       { $set: { status: "delivered", deliveryTime: new Date(), deliveryAgentId: robinId } }
     );
-    console.log(`[delivery.service] Orders updated by userId+foodId fallback: ${fallback.modifiedCount}`);
+    console.log(`[delivery.service] Orders updated by userId+foodId: ${r2.modifiedCount}`);
   }
 
   // Update NightWorkerRequests to "delivered"

@@ -41,10 +41,18 @@ def predict_action(data: FoodInput):
         if time_left <= 0:
             return {"decision": "DONATE", "suggested_price": 0.0, "error": "Item Expired"}
 
-        # Agent Logic: Donation Threshold
-        DONATION_THRESHOLD = 4.5                # increase this value to see the decrease in the value of the food
+        # Agent Logic: Dynamic Donation Threshold for Review
+        # Cycles through values: 3.0, 4.5, 6.0, 7.5, 9.0 every minute
+        review_thresholds = [3.0, 4.5, 6.0, 7.5, 9.0]
+        DONATION_THRESHOLD = review_thresholds[datetime.now().minute % len(review_thresholds)]
+
         if time_left <= DONATION_THRESHOLD:
-            return {"decision": "DONATE", "suggested_price": 0.0}
+            return {
+                "decision": "DONATE", 
+                "suggested_price": 0.0, 
+                "current_threshold": DONATION_THRESHOLD,
+                "time_left": round(time_left, 2)
+            }
 
         # Dynamic Pricing Logic
         time_factor = (time_left - DONATION_THRESHOLD) / (shelf_life - DONATION_THRESHOLD) if shelf_life > DONATION_THRESHOLD else 0
@@ -55,7 +63,8 @@ def predict_action(data: FoodInput):
             "decision": "SELL",
             "suggested_price": round(float(suggested_price), 2),
             "time_left": round(time_left, 2),
-            "discount_percent": round(((data.Price - suggested_price) / data.Price) * 100, 1)
+            "discount_percent": round(((data.Price - suggested_price) / data.Price) * 100, 1),
+            "current_threshold": DONATION_THRESHOLD
         }
     except Exception as e:
         return {"error": str(e)}

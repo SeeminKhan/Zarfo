@@ -15,6 +15,12 @@ const getCategoryConfig = (category) => {
 export default function FoodCard({ item, timeLeft, onAddToCart }) {
   const cat = getCategoryConfig(item.category);
   const isExpired = timeLeft[item._id] === "Expired";
+  const timeStr = timeLeft[item._id] || "...";
+  const isUrgent = !isExpired && timeStr !== "..." && parseInt(timeStr) === 0 && timeStr.includes("m");
+  const isCritical = !isExpired && timeStr !== "..." && timeStr.startsWith("0h") && parseInt(timeStr.split("m")[0].split(" ")[1]) <= 30;
+  const discount = item.originalPrice && item.discountedPrice && item.originalPrice > item.discountedPrice
+    ? Math.round(((item.originalPrice - item.discountedPrice) / item.originalPrice) * 100)
+    : 0;
 
   return (
     <motion.div
@@ -22,7 +28,9 @@ export default function FoodCard({ item, timeLeft, onAddToCart }) {
       transition={{ duration: 0.2 }}
       className="group"
     >
-      <div className="bg-[var(--card-bg)] rounded-2xl overflow-hidden border border-[rgba(0,0,0,0.06)] shadow-sm hover:shadow-lg transition-all duration-200">
+      <div className={`bg-[var(--card-bg)] rounded-2xl overflow-hidden border shadow-sm hover:shadow-lg transition-all duration-200 ${
+        isCritical ? "border-red-200" : "border-[rgba(0,0,0,0.06)]"
+      }`}>
         {/* Image */}
         <div className="relative h-44 bg-[var(--bg-color-light)] overflow-hidden">
           {item.images?.[0] ? (
@@ -42,11 +50,19 @@ export default function FoodCard({ item, timeLeft, onAddToCart }) {
           </span>
           {/* Expiry badge */}
           <span className={`absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold ${
-            isExpired ? "bg-red-100 text-red-600" : "bg-black/50 text-white backdrop-blur-sm"
+            isExpired ? "bg-red-100 text-red-600" :
+            isCritical ? "bg-red-500 text-white animate-pulse" :
+            "bg-black/50 text-white backdrop-blur-sm"
           }`}>
             <Clock className="w-2.5 h-2.5" />
             {timeLeft[item._id] || "..."}
           </span>
+          {/* Discount badge */}
+          {discount > 0 && (
+            <span className="absolute bottom-2.5 left-2.5 bg-[var(--green-primary)] text-white text-[10px] font-black px-2 py-0.5 rounded-lg">
+              {discount}% OFF
+            </span>
+          )}
         </div>
 
         {/* Content */}

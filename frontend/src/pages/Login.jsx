@@ -3,16 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mail, Lock, Eye, EyeOff, Loader2, ChefHat, ArrowLeft, Building2, Truck, ShoppingBag, Feather } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2, ChefHat, ArrowLeft, Building2, Truck, ShoppingBag, Feather, ShieldCheck } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { motion } from "framer-motion";
 import api from "@/lib/api";
 
 const DEMO_ACCOUNTS = [
-  { role: "Hotel",   email: "demo.hotel@zarfo.com",  password: "demo1234", icon: Building2, color: "bg-green-50 text-green-700 border-green-200",  desc: "List surplus food" },
-  { role: "Robin",   email: "demo.robin@zarfo.com",  password: "demo1234", icon: Truck,     color: "bg-blue-50 text-blue-700 border-blue-200",     desc: "Deliver food" },
-  { role: "User",    email: "demo.user@zarfo.com",   password: "demo1234", icon: ShoppingBag, color: "bg-purple-50 text-purple-700 border-purple-200", desc: "Buy discounted meals" },
-  { role: "Worker",  email: "demo.worker@zarfo.com", password: "demo1234", icon: Feather,   color: "bg-orange-50 text-orange-700 border-orange-200", desc: "Receive free meals" },
+  { role: "Admin",  email: "admin@zarfo.com",        password: "demo1234", icon: ShieldCheck, color: "bg-slate-50 text-slate-700 border-slate-200",   desc: "Platform management" },
+  { role: "Hotel",  email: "demo.hotel@zarfo.com",   password: "demo1234", icon: Building2,   color: "bg-green-50 text-green-700 border-green-200",   desc: "List surplus food" },
+  { role: "Robin",  email: "demo.robin@zarfo.com",   password: "demo1234", icon: Truck,       color: "bg-blue-50 text-blue-700 border-blue-200",      desc: "Deliver food" },
+  { role: "User",   email: "demo.user@zarfo.com",    password: "demo1234", icon: ShoppingBag, color: "bg-purple-50 text-purple-700 border-purple-200", desc: "Buy discounted meals" },
+  { role: "Worker", email: "demo.worker@zarfo.com",  password: "demo1234", icon: Feather,     color: "bg-orange-50 text-orange-700 border-orange-200", desc: "Receive free meals" },
 ];
 
 export default function Login() {
@@ -131,7 +132,7 @@ export default function Login() {
             <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--muted-text)] mb-3">
               Quick Demo Access
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {DEMO_ACCOUNTS.map((account) => {
                 const Icon = account.icon;
                 const isLoading = demoLoading === account.role;

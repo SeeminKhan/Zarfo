@@ -28,6 +28,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import NotificationBell from "@/components/NotificationBell";
 import AddFoodModal from "@/components/hotel/AddFood";
 import FoodListings from "@/components/hotel/FoodListings";
 import DeliveryTracking from "@/components/hotel/DeliveryTracking";
@@ -173,10 +174,7 @@ export default function HotelDashboard() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <button className="relative w-9 h-9 rounded-xl flex items-center justify-center text-[var(--muted-text)] hover:bg-[var(--bg-color-light)] hover:text-[var(--text-color)] transition-all">
-              <Bell size={17} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[var(--green-primary)] border-2 border-[var(--card-bg)]" />
-            </button>
+            <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-[var(--bg-color-light)] transition-colors border border-transparent hover:border-[rgba(0,0,0,0.06)]">

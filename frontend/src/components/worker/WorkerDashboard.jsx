@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import api from "@/lib/api";
 import { toast } from "react-toastify";
+import NotificationBell from "@/components/NotificationBell";
 import FoodCard from "@/components/worker/FoodCard";
 import MyRequests from "@/components/worker/MyRequests";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -138,9 +139,7 @@ export default function WorkerDashboard() {
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <button className="w-9 h-9 rounded-xl flex items-center justify-center text-[var(--muted-text)] hover:bg-[var(--bg-color-light)] transition-all">
-              <Bell size={17} />
-            </button>
+            <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-[var(--bg-color-light)] transition-colors border border-transparent hover:border-[rgba(0,0,0,0.06)]">

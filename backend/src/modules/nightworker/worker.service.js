@@ -125,6 +125,17 @@ export const getWorkerOrders = async (workerId) => {
         .lean();
     }
 
+    // Also try matching by NightWorkerRequest workerId
+    if (!delivery && o.foodId?._id) {
+      const nwr = await NightWorkerRequest.findOne({ workerId, foodId: o.foodId._id }).lean();
+      if (nwr) {
+        delivery = await Delivery
+          .findOne({ workerRequestIds: nwr._id })
+          .populate("robinId", "name location")
+          .lean();
+      }
+    }
+
     const robinName     = delivery?.robinId?.name || o.deliveryAgentId?.name || null;
     const robinLocation = delivery?.robinId?.location || null;
 
@@ -135,11 +146,23 @@ export const getWorkerOrders = async (workerId) => {
       eta = Math.max(0, Math.round(estimated - elapsed));
     }
 
+    // Use Delivery status as source of truth
+    let resolvedStatus = o.status;
+    if (delivery) {
+      if (delivery.status === "delivered")  resolvedStatus = "delivered";
+      else if (delivery.status === "picked_up") resolvedStatus = "on_the_way";
+    }
+
+    // Sync Order in DB if out of date (fire-and-forget)
+    if (resolvedStatus !== o.status) {
+      Order.updateOne({ _id: o._id }, { $set: { status: resolvedStatus } }).catch(() => {});
+    }
+
     return {
       _id:          o._id,
       foodName:     o.foodId?.name || "Unknown",
       hotelName:    o.foodId?.hotelId?.name || "Unknown Hotel",
-      status:       o.status,
+      status:       resolvedStatus,
       createdAt:    o.createdAt,
       deliveredAt:  delivery?.deliveredAt || null,
       pickedUpAt:   delivery?.pickedUpAt || null,

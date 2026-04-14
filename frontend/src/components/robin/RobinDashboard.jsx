@@ -18,6 +18,7 @@ import {
   XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import NotificationBell from "@/components/NotificationBell";
 import SelectRoute from "@/components/robin/SelectRoute";
 import ActiveDelivery from "@/components/robin/ActiveDelivery";
 import PastDeliveries from "@/components/robin/PastDeliveries";
@@ -126,9 +127,7 @@ export default function RobinDashboard() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <button className="relative w-9 h-9 rounded-xl flex items-center justify-center text-[var(--muted-text)] hover:bg-[var(--bg-color-light)] transition-all">
-              <Bell size={17} />
-            </button>
+            <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-[var(--bg-color-light)] transition-colors border border-transparent hover:border-[rgba(0,0,0,0.06)]">
