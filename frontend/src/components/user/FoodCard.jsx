@@ -1,90 +1,111 @@
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, MapPin, Clock } from "lucide-react";
+import { ShoppingCart, MapPin, Clock, Package, Leaf, Flame, Candy, Zap, Tag, Sparkles, IndianRupee } from "lucide-react";
 import { motion } from "framer-motion";
 
-import { Leaf, Flame } from "lucide-react";
-
-const getCategoryBadge = (category) => {
-  const base =
-    "px-2 py-0.5 text-[10px] font-semibold rounded-md inline-flex items-center gap-1 shadow-sm";
+const getCategoryConfig = (category) => {
   switch (category?.toLowerCase()) {
-    case "veg":
-      return (
-        <span className={`${base} bg-green-100 text-green-700`}>
-          <Leaf className="w-3 h-3 text-green-600" />
-          {category}
-        </span>
-      );
-    case "non-veg":
-      return (
-        <span className={`${base} bg-red-100 text-red-700`}>
-          <Flame className="w-3 h-3 text-red-600" />
-          {category}
-        </span>
-      );
-    case "sweet":
-      return <span className={`${base} bg-pink-100 text-pink-700`}>🍰 {category}</span>;
-    case "spicy":
-      return <span className={`${base} bg-orange-100 text-orange-700`}>🌶️ {category}</span>;
-    default:
-      return <span className={`${base} bg-gray-100 text-gray-700`}>{category || "Other"}</span>;
+    case "veg":     return { bg: "bg-green-100 text-green-700 border-green-200",  icon: <Leaf className="w-3 h-3" /> };
+    case "non-veg": return { bg: "bg-red-100 text-red-700 border-red-200",        icon: <Flame className="w-3 h-3" /> };
+    case "sweet":   return { bg: "bg-pink-100 text-pink-700 border-pink-200",     icon: <Candy className="w-3 h-3" /> };
+    case "spicy":   return { bg: "bg-orange-100 text-orange-700 border-orange-200", icon: <Zap className="w-3 h-3" /> };
+    default:        return { bg: "bg-gray-100 text-gray-600 border-gray-200",     icon: <Tag className="w-3 h-3" /> };
   }
 };
 
 export default function FoodCard({ item, timeLeft, onAddToCart }) {
+  const cat = getCategoryConfig(item.category);
+  const isExpired = timeLeft[item._id] === "Expired";
+  const timeStr = timeLeft[item._id] || "...";
+  const isUrgent = !isExpired && timeStr !== "..." && parseInt(timeStr) === 0 && timeStr.includes("m");
+  const isCritical = !isExpired && timeStr !== "..." && timeStr.startsWith("0h") && parseInt(timeStr.split("m")[0].split(" ")[1]) <= 30;
+  const discount = item.originalPrice && item.discountedPrice && item.originalPrice > item.discountedPrice
+    ? Math.round(((item.originalPrice - item.discountedPrice) / item.originalPrice) * 100)
+    : 0;
+
   return (
     <motion.div
-      whileHover={{ y: -4, scale: 1.02 }}
-      transition={{ duration: 0.25 }}
+      whileHover={{ y: -4 }}
+      transition={{ duration: 0.2 }}
+      className="group"
     >
-      <Card className="rounded-2xl overflow-hidden bg-[var(--card-bg)] shadow-md hover:shadow-xl transition-all border border-[rgba(0,0,0,0.05)]">
-        <div className="relative">
-          <img
-            src={
-              item.images?.[0]
-                ? `data:image/png;base64,${item.images[0]}`
-                : "/placeholder.svg"
-            }
-            alt={item.title}
-            className="w-full h-48 object-cover transition-transform duration-300 hover:scale-105"
-          />
-          <div className="absolute top-3 left-3">{getCategoryBadge(item.category)}</div>
+      <div className={`bg-[var(--card-bg)] rounded-2xl overflow-hidden border shadow-sm hover:shadow-lg transition-all duration-200 ${
+        isCritical ? "border-red-200" : "border-[rgba(0,0,0,0.06)]"
+      }`}>
+        {/* Image */}
+        <div className="relative h-44 bg-[var(--bg-color-light)] overflow-hidden">
+          {item.images?.[0] ? (
+            <img
+              src={`data:image/png;base64,${item.images[0]}`}
+              alt={item.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Package className="w-10 h-10 text-[var(--muted-text)] opacity-30" />
+            </div>
+          )}
+          {/* Category badge */}
+          <span className={`absolute top-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold border ${cat.bg}`}>
+            {cat.icon}{item.category || "Other"}
+          </span>
+          {/* Expiry badge */}
+          <span className={`absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold ${
+            isExpired ? "bg-red-100 text-red-600" :
+            isCritical ? "bg-red-500 text-white animate-pulse" :
+            "bg-black/50 text-white backdrop-blur-sm"
+          }`}>
+            <Clock className="w-2.5 h-2.5" />
+            {timeLeft[item._id] || "..."}
+          </span>
+          {/* Discount badge */}
+          {discount > 0 && (
+            <span className="absolute bottom-2.5 left-2.5 bg-[var(--green-primary)] text-white text-[10px] font-black px-2 py-0.5 rounded-lg">
+              {discount}% OFF
+            </span>
+          )}
         </div>
 
-        <div className="p-5 space-y-3">
-          <h3 className="text-lg font-semibold line-clamp-1">{item.title}</h3>
-          <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
+        {/* Content */}
+        <div className="p-4">
+          <h3 className="text-sm font-bold text-[var(--text-color)] line-clamp-1 mb-1">{item.title}</h3>
+          {item.description && (
+            <p className="text-[11px] text-[var(--muted-text)] line-clamp-2 leading-relaxed mb-3">{item.description}</p>
+          )}
 
-          <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <MapPin className="w-4 h-4" /> {item.hotelName}
-            </span>
-            <span className="flex items-center gap-1 text-orange-600 font-medium">
-              <Clock className="w-4 h-4" />
-              {timeLeft[item._id] || "Calculating..."}
-            </span>
+          <div className="flex items-center gap-1.5 text-[11px] text-[var(--muted-text)] mb-3">
+            <MapPin className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate">{item.hotelName}</span>
           </div>
 
-          <div className="flex items-center justify-between pt-3 border-t border-border">
+          {/* Price row */}
+          <div className="flex items-center justify-between pt-3 border-t border-[rgba(0,0,0,0.05)]">
             <div>
-              <div className="text-lg font-bold text-[var(--green-primary)]">
-                ₹{item.discountedPrice}
+              <div className="flex items-center gap-0.5 text-base font-black text-[var(--green-primary)]">
+                <IndianRupee className="w-3.5 h-3.5" />{item.discountedPrice}
               </div>
-              <div className="text-xs text-muted-foreground line-through">
-                ₹{item.originalPrice}
-              </div>
+              {item.originalPrice !== item.discountedPrice && (
+                <div className="flex items-center gap-0.5 text-[10px] text-[var(--muted-text)] line-through">
+                  <IndianRupee className="w-2.5 h-2.5" />{item.originalPrice}
+                </div>
+              )}
             </div>
+            {item.discountedPrice < item.originalPrice && (
+              <span className="flex items-center gap-1 text-[10px] font-bold text-[var(--green-primary)] bg-[var(--green-primary)]/10 px-2 py-0.5 rounded-lg">
+                <Sparkles className="w-2.5 h-2.5" />AI Price
+              </span>
+            )}
             <Button
               onClick={() => onAddToCart(item)}
-              className="bg-[var(--green-primary)] hover:bg-[var(--green-dark)] text-white"
+              disabled={isExpired}
+              size="sm"
+              className="h-8 px-3 text-xs rounded-xl bg-[var(--green-primary)] hover:bg-[var(--green-dark)] text-white border-0 shadow-sm disabled:opacity-50"
             >
-              <ShoppingCart className="w-4 h-4 mr-2" />
+              <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
               Add
             </Button>
           </div>
         </div>
-      </Card>
+      </div>
     </motion.div>
   );
 }

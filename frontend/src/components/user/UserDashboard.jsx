@@ -1,64 +1,85 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Sidebar } from "@/components/user/Sidebar";
-import { Search, Leaf, ShoppingCart, Menu, User } from "lucide-react";
+import {
+  Search, Leaf, Menu, User, LogOut, Bell,
+  ShoppingCart, Flame, Candy, Zap, Tag, Package,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import api from "@/lib/api";
 import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import NotificationBell from "@/components/NotificationBell";
 import FoodCard from "@/components/user/FoodCard";
 import CartPage from "@/components/user/CartPage";
 import MyOrdersPage from "@/components/user/MyOrders";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import ProfilePage from "@/pages/ProfilePage";
+
+const filters = [
+  { value: "all",     label: "All",     icon: null },
+  { value: "veg",     label: "Veg",     icon: Leaf   },
+  { value: "non-veg", label: "Non-Veg", icon: Flame  },
+  { value: "sweet",   label: "Sweet",   icon: Candy  },
+  { value: "spicy",   label: "Spicy",   icon: Zap    },
+];
+
+const pageTitles = {
+  feed:     "Browse Food",
+  cart:     "My Cart",
+  myOrders: "My Orders",
+  profile:  "My Profile",
+};
 
 export default function UserDashboard() {
-  const [listings, setListings] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [listings, setListings]           = useState([]);
+  const [searchQuery, setSearchQuery]     = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
-  const [cart, setCart] = useState([]);
-  const [timeLeft, setTimeLeft] = useState({});
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activePage, setActivePage] = useState("feed");
+  const [cart, setCart]                   = useState([]);
+  const [timeLeft, setTimeLeft]           = useState({});
+  const [sidebarOpen, setSidebarOpen]     = useState(false);
+  const [activePage, setActivePage]       = useState("feed");
+  const [loading, setLoading]             = useState(false);
+  const { logout, user }                  = useAuth();
+  const navigate                          = useNavigate();
 
-  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+  const toggleSidebar = () => setSidebarOpen((v) => !v);
+  const handleLogout  = async () => { await logout(); navigate("/login"); };
 
-  // Fetch food
   const fetchFood = async () => {
     try {
+      setLoading(true);
       const res = await api.get("/user/browse", {
         params: selectedFilter !== "all" ? { category: selectedFilter } : {},
       });
       setListings(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      console.error("Failed to fetch food:", err);
+      console.error("Failed to fetch food:", err.message);
       setListings([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchFood();
-  }, [selectedFilter]);
+  useEffect(() => { fetchFood(); }, [selectedFilter]);
 
-  // Timer calculation
   useEffect(() => {
     const interval = setInterval(() => {
       const newTimes = {};
       listings.forEach((item) => {
         const diff = new Date(item.expiryTime) - new Date();
         if (diff > 0) {
-          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const hours   = Math.floor(diff / (1000 * 60 * 60));
           const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
           newTimes[item._id] = `${hours}h ${minutes}m`;
-        } else newTimes[item._id] = "Expired";
+        } else {
+          newTimes[item._id] = "Expired";
+        }
       });
       setTimeLeft(newTimes);
     }, 60000);
@@ -68,150 +89,270 @@ export default function UserDashboard() {
   const addToCart = (item) => {
     if (!cart.find((i) => i._id === item._id)) {
       setCart((prev) => [...prev, item]);
-      toast.success(`${item.title} added to cart 🛒`);
+      toast.success(`${item.title} added to cart`);
     } else {
       toast.info(`${item.title} is already in your cart`);
     }
   };
 
-  const placeOrder = async (item) => {
-    try {
-      await api.post("/user/order", { foodId: item._id });
-      toast.success("Order placed successfully ✅");
-      fetchFood();
-      setCart((prev) => prev.filter((i) => i._id !== item._id));
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to place order");
-    }
-  };
-
   const filteredListings = listings.filter((item) =>
-    item.title.toLowerCase().includes(searchQuery.toLowerCase())
+    item.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <div className="flex h-screen bg-[var(--bg-color-light)] text-[var(--text-color)] overflow-hidden transition-all duration-300">
-      {/* Sidebar */}
+    <div className="flex h-screen bg-[var(--bg-color-light)] text-[var(--text-color)] overflow-hidden">
+
+      {/* ── Sidebar overlay ─────────────────────────────────── */}
       <AnimatePresence>
         {sidebarOpen && (
-          <motion.div
-            initial={{ x: -280 }}
-            animate={{ x: 0 }}
-            exit={{ x: -280 }}
-            transition={{ duration: 0.25 }}
-            className="fixed z-40 h-full"
-          >
-            <Sidebar
-              open={sidebarOpen}
-              onClose={toggleSidebar}
-              setActivePage={setActivePage}
+          <>
+            <motion.div key="overlay"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm"
+              onClick={toggleSidebar}
             />
-          </motion.div>
+            <motion.div key="sidebar"
+              initial={{ x: -300 }} animate={{ x: 0 }} exit={{ x: -300 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed z-40 h-full"
+            >
+              <Sidebar
+                open={sidebarOpen}
+                onClose={toggleSidebar}
+                setActivePage={setActivePage}
+                activePage={activePage}
+              />
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col">
+      {/* ── Main column ─────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0">
+
         {/* Navbar */}
-        <header className="flex justify-between items-center px-6 py-4 sticky top-0 z-30 backdrop-blur-lg bg-[var(--bg-color-light)] shadow-sm">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleSidebar}
-              className="text-[var(--green-primary)] hover:bg-[var(--green-primary)]/10"
-            >
-              <Menu size={22} />
+        <header className="flex justify-between items-center px-4 sm:px-6 py-3 sticky top-0 z-20 bg-[var(--card-bg)] border-b border-[rgba(0,0,0,0.06)] shadow-sm">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={toggleSidebar}
+              className="rounded-xl text-[var(--text-color)] hover:bg-[var(--bg-color-light)] w-9 h-9">
+              <Menu size={18} />
             </Button>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {activePage === "feed"
-                ? "User Feed"
-                : activePage === "cart"
-                ? "Your Cart"
-                : activePage === "myOrders"
-                ? "My Orders"
-                : ""}
-            </h1>
+            <div>
+              <h1 className="text-sm sm:text-base font-bold leading-none text-[var(--text-color)]">
+                {pageTitles[activePage] || "Dashboard"}
+              </h1>
+              <p className="text-[10px] text-[var(--muted-text)] mt-0.5 hidden sm:block font-medium">
+                Zarfo User Portal
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
+
+          <div className="flex items-center gap-2">
             <ThemeToggle />
+            <NotificationBell />
+            <button
+              onClick={() => setActivePage("cart")}
+              className="relative w-9 h-9 rounded-xl flex items-center justify-center text-[var(--muted-text)] hover:bg-[var(--bg-color-light)] hover:text-[var(--text-color)] transition-all"
+            >
+              <ShoppingCart size={17} />
+              {cart.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-[var(--green-primary)] text-white text-[9px] font-black flex items-center justify-center">
+                  {cart.length}
+                </span>
+              )}
+            </button>
+
+            <button className="relative w-9 h-9 rounded-xl flex items-center justify-center text-[var(--muted-text)] hover:bg-[var(--bg-color-light)] transition-all" style={{display:"none"}}>
+              <Bell size={17} />
+            </button>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Avatar className="cursor-pointer ring-2 ring-[var(--green-primary)] hover:scale-105 transition">
-                  <AvatarImage src="/user-avatar.png" alt="User" />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
+                <button className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-[var(--bg-color-light)] transition-colors border border-transparent hover:border-[rgba(0,0,0,0.06)]">
+                  <Avatar className="w-8 h-8 ring-2 ring-[var(--green-primary)]/30 ring-offset-1">
+                    <AvatarImage src="/worker-avatar.png" alt="User" />
+                    <AvatarFallback className="bg-gradient-to-br from-[var(--green-primary)] to-[var(--green-dark)] text-white text-xs font-bold">
+                      {user?.name?.[0]?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="hidden sm:block text-left">
+                    <p className="text-xs font-bold leading-none max-w-[90px] truncate">{user?.name || "User"}</p>
+                    <p className="text-[10px] text-[var(--muted-text)] mt-0.5">Customer</p>
+                  </div>
+                </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-[var(--card-bg)]">
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Logout</DropdownMenuItem>
+              <DropdownMenuContent align="end" className="bg-[var(--card-bg)] border border-[rgba(0,0,0,0.08)] shadow-2xl rounded-2xl w-52 py-1.5">
+                <div className="px-3 py-2.5 border-b border-[rgba(0,0,0,0.06)]">
+                  <p className="text-sm font-bold truncate">{user?.name || "User"}</p>
+                  <p className="text-[11px] text-[var(--muted-text)] truncate mt-0.5">{user?.email || ""}</p>
+                </div>
+                <DropdownMenuItem
+                  className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-[var(--bg-color-light)] rounded-xl mx-1.5 mt-1"
+                  onClick={() => setActivePage("profile")}
+                >
+                  <div className="w-6 h-6 rounded-lg bg-[var(--green-primary)]/10 flex items-center justify-center">
+                    <User className="w-3.5 h-3.5 text-[var(--green-primary)]" />
+                  </div>
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-1 bg-[rgba(0,0,0,0.06)]" />
+                <DropdownMenuItem
+                  className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer text-red-500 hover:bg-red-50 rounded-xl mx-1.5 mb-1"
+                  onClick={handleLogout}
+                >
+                  <div className="w-6 h-6 rounded-lg bg-red-50 flex items-center justify-center">
+                    <LogOut className="w-3.5 h-3.5 text-red-500" />
+                  </div>
+                  Logout
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </header>
 
-        {/* Content */}
-        <main className="flex-1 p-6 overflow-y-auto">
-          {/* FEED PAGE */}
-          {activePage === "feed" && (
-            <>
-              {/* Search + Filter */}
-              <div className="flex flex-col md:flex-row gap-4 mb-8">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search for food, cuisine, or restaurant..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  {["all", "veg", "non-veg", "sweet", "spicy"].map((filter) => (
-                    <Button
-                      key={filter}
-                      variant={
-                        selectedFilter === filter ? "default" : "outline"
-                      }
-                      onClick={() => setSelectedFilter(filter)}
-                      size="sm"
-                    >
-                      {filter === "veg" && (
-                        <Leaf className="w-4 h-4 mr-1 text-green-600" />
-                      )}
-                      {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                    </Button>
-                  ))}
-                </div>
-              </div>
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <AnimatePresence mode="wait">
 
-              {/* Food Cards */}
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredListings.length > 0 ? (
-                  filteredListings.map((item) => (
-                    <FoodCard
-                      key={item._id}
-                      item={item}
-                      timeLeft={timeLeft}
-                      onAddToCart={addToCart}
+            {/* ── FEED ─────────────────────────────────────────── */}
+            {activePage === "feed" && (
+              <motion.div key="feed"
+                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+                className="space-y-5 max-w-7xl mx-auto"
+              >
+                {/* Hero banner */}
+                <div className="rounded-2xl bg-gradient-to-r from-[var(--green-primary)] to-[var(--green-dark)] p-5 sm:p-6 text-white relative overflow-hidden">
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
+                    <div className="absolute -bottom-10 -left-6 w-48 h-48 rounded-full bg-white/5" />
+                  </div>
+                  <div className="relative z-10 flex items-center justify-between gap-4">
+                    <div>
+                      <div className="inline-flex items-center gap-2 bg-white/15 border border-white/20 rounded-full px-3 py-1 mb-3">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-300 animate-pulse" />
+                        <span className="text-white/80 text-[11px] font-semibold tracking-wide uppercase">Flash Deals Live</span>
+                      </div>
+                      <h2 className="text-lg sm:text-xl font-bold leading-tight">
+                        Good evening, {user?.name?.split(" ")[0] || "there"}
+                      </h2>
+                      <p className="text-white/70 text-xs mt-1.5 max-w-xs leading-relaxed">
+                        {listings.length} discounted meal{listings.length !== 1 ? "s" : ""} available from nearby hotels. Grab them before they expire.
+                      </p>
+                    </div>
+                    <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                      <ShoppingCart className="w-7 h-7 text-white" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Search + filters */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-text)]" />
+                    <input
+                      type="text"
+                      placeholder="Search food, cuisine, hotel..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-[rgba(0,0,0,0.08)] bg-[var(--card-bg)] text-[var(--text-color)] placeholder:text-[var(--muted-text)] focus:outline-none focus:ring-2 focus:ring-[var(--green-primary)]/30 transition-all"
                     />
-                  ))
+                  </div>
+                  <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+                    {filters.map((f) => {
+                      const Icon = f.icon;
+                      const active = selectedFilter === f.value;
+                      return (
+                        <button key={f.value} onClick={() => setSelectedFilter(f.value)}
+                          className={`flex items-center gap-1.5 flex-shrink-0 text-xs font-semibold px-3.5 py-2 rounded-xl transition-all duration-150 ${
+                            active
+                              ? "bg-[var(--green-primary)] text-white shadow-sm"
+                              : "bg-[var(--card-bg)] text-[var(--muted-text)] border border-[rgba(0,0,0,0.08)] hover:border-[rgba(0,0,0,0.15)]"
+                          }`}
+                        >
+                          {Icon && <Icon className="w-3.5 h-3.5" />}
+                          {f.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Results count */}
+                {!loading && (
+                  <p className="text-xs text-[var(--muted-text)] font-medium">
+                    {filteredListings.length} item{filteredListings.length !== 1 ? "s" : ""} available
+                    {searchQuery && ` for "${searchQuery}"`}
+                  </p>
+                )}
+
+                {/* Grid */}
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center h-64 gap-4 text-[var(--muted-text)]">
+                    <div className="w-16 h-16 rounded-2xl bg-[var(--green-primary)]/10 flex items-center justify-center">
+                      <Search className="w-7 h-7 text-[var(--green-primary)] animate-pulse" />
+                    </div>
+                    <p className="text-sm font-semibold text-[var(--text-color)]">Finding fresh food...</p>
+                  </div>
+                ) : filteredListings.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {filteredListings.map((item, i) => (
+                      <motion.div key={item._id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04, duration: 0.2 }}
+                      >
+                        <FoodCard item={item} timeLeft={timeLeft} onAddToCart={addToCart} />
+                      </motion.div>
+                    ))}
+                  </div>
                 ) : (
-                  <div className="col-span-full text-center text-muted-foreground py-12">
-                    <Search className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                    No food found. Try adjusting filters.
+                  <div className="flex flex-col items-center justify-center h-64 gap-4 text-[var(--muted-text)]">
+                    <div className="w-16 h-16 rounded-2xl bg-[var(--bg-color-light)] flex items-center justify-center">
+                      <Package className="w-8 h-8 opacity-30" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-[var(--text-color)]">No food found</p>
+                      <p className="text-xs mt-1">Try adjusting your search or filter.</p>
+                    </div>
                   </div>
                 )}
-              </div>
-            </>
-          )}
+              </motion.div>
+            )}
 
-          {/* CART PAGE */}
-          {activePage === "cart" && (
-            <CartPage cart={cart} setCart={setCart} fetchFood={fetchFood} />
-          )}
+            {/* ── CART ─────────────────────────────────────────── */}
+            {activePage === "cart" && (
+              <motion.div key="cart"
+                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+              >
+                <CartPage cart={cart} setCart={setCart} fetchFood={fetchFood} />
+              </motion.div>
+            )}
 
-          {activePage === "myOrders" && <MyOrdersPage />}
+            {/* ── ORDERS ───────────────────────────────────────── */}
+            {activePage === "myOrders" && (
+              <motion.div key="myOrders"
+                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+                className="max-w-4xl mx-auto"
+              >
+                <MyOrdersPage />
+              </motion.div>
+            )}
+
+            {/* ── PROFILE ──────────────────────────────────────── */}
+            {activePage === "profile" && (
+              <motion.div key="profile"
+                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+                className="max-w-3xl mx-auto"
+              >
+                <ProfilePage />
+              </motion.div>
+            )}
+
+          </AnimatePresence>
         </main>
       </div>
     </div>

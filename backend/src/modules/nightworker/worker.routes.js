@@ -1,15 +1,21 @@
 import express from 'express';
-import { getMyTasks, confirmReceipt } from './worker.controller.js';
 import { protect } from '../../middlewares/auth.js';
 import { checkRole } from '../../middlewares/checkRole.js';
+import {
+  browseDonationFood,
+  createDonationOrder,
+  fetchMyReceivedMeals
+} from './worker.controller.js';
 
 const router = express.Router();
 
-// All worker routes require authentication
-router.use(protect);
-router.use(checkRole('worker'));
+// Worker feed (FREE DONATION FOOD)
+router.get('/browse', protect, checkRole('worker'), browseDonationFood);
 
-router.get('/my-tasks', getMyTasks);
-router.post('/tasks/confirm', confirmReceipt);
+// Worker places “donation order”
+router.post('/order/create', protect, checkRole('worker'), createDonationOrder);
+
+// Worker order history
+router.get('/orders', protect, checkRole('worker'), fetchMyReceivedMeals);
 
 export default router;

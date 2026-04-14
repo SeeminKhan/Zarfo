@@ -1,96 +1,275 @@
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, Truck } from "lucide-react";
+import { MapPin, Truck, Clock, CheckCircle2, Package, Navigation, Phone, Loader2, ClipboardList, IndianRupee, Star, RefreshCw } from "lucide-react";
+import { motion } from "framer-motion";
 import api from "@/lib/api";
+import { toast } from "react-toastify";
+import RatingModal from "@/components/shared/RatingModal";
+
+const getStatusConfig = (status) => {
+  switch (status?.toLowerCase()) {
+    case "pending_pickup":
+    case "pending":
+      return { label: "Pending Pickup", bg: "bg-yellow-100 text-yellow-700", dot: "bg-yellow-500", pulse: true };
+    case "on_the_way":
+      return { label: "On the Way",     bg: "bg-blue-100 text-blue-700",     dot: "bg-blue-500",   pulse: true };
+    case "delivered":
+      return { label: "Delivered",      bg: "bg-green-100 text-green-700",   dot: "bg-green-500",  pulse: false };
+    case "cancelled":
+      return { label: "Cancelled",      bg: "bg-red-100 text-red-600",       dot: "bg-red-400",    pulse: false };
+    default:
+      return { label: status || "Unknown", bg: "bg-gray-100 text-gray-600", dot: "bg-gray-400",   pulse: false };
+  }
+};
+
+const openTrack = (robinLocation) => {
+  if (!robinLocation?.lat) {
+    alert("Robin location not available yet. Check back once pickup is confirmed.");
+    return;
+  }
+  window.open(
+    `https://www.google.com/maps?q=${robinLocation.lat},${robinLocation.lng}`,
+    "_blank"
+  );
+};
 
 export default function MyOrdersPage() {
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders]       = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [ratingOrder, setRatingOrder] = useState(null); // { _id, foodName }
 
   const fetchOrders = async () => {
     try {
+      setLoading(true);
       const res = await api.get("/user/orders");
-      setOrders(res.data);
+      setOrders(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      console.error("Failed to fetch orders:", err);
+      console.error("Failed to fetch orders:", err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => { fetchOrders(); }, []);
+
+  // Poll every 15s when there are active orders (faster than 30s for better UX)
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    const hasActive = orders.some((o) => o.status !== "delivered" && o.status !== "cancelled");
+    if (!hasActive) return;
+    const interval = setInterval(fetchOrders, 15000);
+    return () => clearInterval(interval);
+  }, [orders]);
 
-  const activeOrders = orders.filter((o) => o.status !== "Delivered");
-  const pastOrders = orders.filter((o) => o.status === "Delivered");
+  const activeOrders = orders.filter((o) => o.status !== "delivered" && o.status !== "Delivered");
+  const pastOrders   = orders.filter((o) => o.status === "delivered" || o.status === "Delivered");
 
-  return (
-    <div className="p-6 space-y-6">
-      {/* Active Orders */}
-      {activeOrders.length > 0 &&
-        activeOrders.map((order) => (
-          <Card key={order._id}>
-            <div className="p-4 space-y-2">
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="font-semibold">Order #{order._id}</div>
-                  <div className="text-sm text-muted-foreground">
-                    Placed {new Date(order.createdAt).toLocaleTimeString()}
-                  </div>
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4 text-[var(--muted-text)]">
+        <div className="w-16 h-16 rounded-2xl bg-[var(--green-primary)]/10 flex items-center justify-center">
+          <Loader2 className="w-7 h-7 text-[var(--green-primary)] animate-spin" />
+        </div>
+        <p className="text-sm font-semibold text-[var(--text-color)]">Loading your orders...</p>
+      </div>
+    );
+  }
+
+  if (orders.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4 text-[var(--muted-text)]">
+        <div className="w-20 h-20 rounded-3xl bg-[var(--green-primary)]/10 flex items-center justify-center">
+          <ClipboardList className="w-10 h-10 text-[var(--green-primary)]" />
+        </div>
+        <div className="text-center">
+          <p className="text-base font-bold text-[var(--text-color)]">No orders yet</p>
+          <p className="text-sm mt-1">Your order history will appear here.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const OrderCard = ({ order, idx, isPast }) => {
+    const statusCfg = getStatusConfig(order.status);
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: idx * 0.05, duration: 0.2 }}
+        className="bg-[var(--card-bg)] rounded-2xl border border-[rgba(0,0,0,0.06)] overflow-hidden hover:shadow-md transition-all duration-200"
+      >
+        {/* Header */}
+        <div className={`flex items-center justify-between px-5 py-4 border-b border-[rgba(0,0,0,0.05)] ${isPast ? "bg-[var(--bg-color-light)]/50" : ""}`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isPast ? "bg-green-50" : "bg-blue-50"}`}>
+              {isPast
+                ? <CheckCircle2 className="w-5 h-5 text-[var(--green-primary)]" />
+                : <Package className="w-5 h-5 text-blue-500" />
+              }
+            </div>
+            <div>
+              <p className="text-sm font-bold text-[var(--text-color)]">
+                {order.foodName || `Order #${order._id?.slice(-6)}`}
+              </p>
+              <p className="text-[11px] text-[var(--muted-text)] mt-0.5">
+                {order.hotelName || "Zarfo Partner"} &bull; {new Date(order.createdAt).toLocaleDateString("en-IN")}
+              </p>
+            </div>
+          </div>
+          <span className={`flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full ${statusCfg.bg}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot} ${statusCfg.pulse ? "animate-pulse" : ""}`} />
+            {statusCfg.label}
+          </span>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-4 space-y-4">
+          {/* Progress bar */}
+          {!isPast && (
+            <div>
+              <div className="flex justify-between text-[10px] text-[var(--muted-text)] mb-1.5">
+                <span>Order Placed</span><span>Picked Up</span><span>Delivered</span>
+              </div>
+              <div className="w-full h-1.5 bg-[var(--bg-color-light)] rounded-full overflow-hidden">
+                <div className={`h-full rounded-full bg-gradient-to-r from-[var(--green-primary)] to-emerald-400 transition-all duration-500 ${
+                  order.status === "on_the_way" ? "w-2/3" :
+                  order.status === "delivered"  ? "w-full" : "w-1/3"
+                }`} />
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            {/* Timeline */}
+            <div className="space-y-2 flex-1">
+              <div className="flex items-center gap-2 text-xs text-[var(--muted-text)]">
+                <div className="w-5 h-5 rounded-lg bg-[var(--bg-color-light)] flex items-center justify-center flex-shrink-0">
+                  <Package className="w-3 h-3" />
                 </div>
-                <Badge variant="default">{order.status}</Badge>
+                <span>Ordered: {new Date(order.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
               </div>
-              <div className="text-sm flex items-center gap-2">
-                <Truck className="w-4 h-4" /> {order.driver}
-              </div>
-              {order.eta && (
-                <div className="text-sm flex items-center gap-2">
-                  <MapPin className="w-4 h-4" /> ETA: {order.eta} mins
+              {order.driver && (
+                <div className="flex items-center gap-2 text-xs text-[var(--muted-text)]">
+                  <div className="w-5 h-5 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
+                    <Truck className="w-3 h-3 text-purple-500" />
+                  </div>
+                  <span>Robin: <span className="font-semibold text-[var(--text-color)]">{order.driver}</span></span>
                 </div>
               )}
-              <div className="flex space-x-2 mt-4">
-                <Button variant="outline" size="sm">
-                  Track Live
-                </Button>
-                <Button variant="outline" size="sm">
-                  Contact Driver
-                </Button>
-              </div>
+              {order.pickedUpAt && (
+                <div className="flex items-center gap-2 text-xs text-[var(--muted-text)]">
+                  <div className="w-5 h-5 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
+                    <Truck className="w-3 h-3 text-orange-500" />
+                  </div>
+                  <span>Picked up: {new Date(order.pickedUpAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+              )}
+              {order.eta != null && !order.deliveredAt && (
+                <div className="flex items-center gap-2 text-xs text-[var(--muted-text)]">
+                  <div className="w-5 h-5 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-3 h-3 text-blue-500" />
+                  </div>
+                  <span>ETA: ~{order.eta} min</span>
+                </div>
+              )}
+              {order.deliveredAt && (
+                <div className="flex items-center gap-2 text-xs text-[var(--green-primary)] font-semibold">
+                  <div className="w-5 h-5 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 className="w-3 h-3" />
+                  </div>
+                  <span>Delivered: {new Date(order.deliveredAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+              )}
+              {order.price != null && order.price > 0 && (
+                <div className="flex items-center gap-1 text-xs font-bold text-[var(--green-primary)]">
+                  <IndianRupee className="w-3 h-3" />{order.price}
+                </div>
+              )}
             </div>
-          </Card>
-        ))}
 
-      {/* Past Orders */}
-      {pastOrders.length > 0 &&
-        pastOrders.map((order) => (
-          <Card key={order._id}>
-            <div className="p-4 space-y-2">
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="font-semibold">Order #{order._id}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {order.foodName} from {order.hotelName}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {new Date(order.createdAt).toLocaleString()}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-semibold">${order.price}</div>
-                  <Badge variant="outline">{order.status}</Badge>
-                </div>
-              </div>
-              <div className="flex space-x-2 mt-3">
-                <Button variant="outline" size="sm">
-                  Reorder
+            {/* Actions */}
+            <div className="flex gap-2 flex-shrink-0">
+              {!isPast ? (
+                <>
+                  <Button onClick={() => openTrack(order.robinLocation)} variant="outline" size="sm"
+                    className="h-8 text-xs rounded-xl border-[rgba(0,0,0,0.1)] hover:bg-[var(--bg-color-light)] gap-1.5">
+                    <Navigation className="w-3.5 h-3.5" /> Track
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const { data } = await api.get(`/delivery/contact/${order._id}`);
+                        if (data.robin?.location?.lat) {
+                          window.open(`https://www.google.com/maps?q=${data.robin.location.lat},${data.robin.location.lng}`, "_blank");
+                        } else {
+                          toast.info(data.message || "Robin contact info not available yet.");
+                        }
+                      } catch { toast.error("Could not fetch contact info."); }
+                    }}
+                    variant="outline" size="sm" className="h-8 text-xs rounded-xl border-[rgba(0,0,0,0.1)] hover:bg-[var(--bg-color-light)] gap-1.5">
+                    <Phone className="w-3.5 h-3.5" /> Contact
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={() => setRatingOrder({ _id: order._id, foodName: order.foodName })}
+                  variant="outline" size="sm"
+                  className="h-8 text-xs rounded-xl border-[rgba(0,0,0,0.1)] hover:bg-[var(--bg-color-light)] gap-1.5"
+                  disabled={order.rated}
+                >
+                  <Star className={`w-3.5 h-3.5 ${order.rated ? "text-yellow-400 fill-yellow-400" : ""}`} />
+                  {order.rated ? "Rated" : "Rate"}
                 </Button>
-                <Button variant="outline" size="sm">
-                  Rate & Review
-                </Button>
-              </div>
+              )}
             </div>
-          </Card>
-        ))}
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+
+  return (
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {ratingOrder && (
+        <RatingModal
+          orderId={ratingOrder._id}
+          foodName={ratingOrder.foodName}
+          onClose={() => setRatingOrder(null)}
+          onRated={fetchOrders}
+        />
+      )}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-bold text-[var(--text-color)]">My Orders</h2>
+          <p className="text-xs text-[var(--muted-text)] mt-0.5">{orders.length} order{orders.length !== 1 ? "s" : ""} total</p>
+        </div>
+        <button onClick={fetchOrders} disabled={loading}
+          className="flex items-center gap-1.5 text-xs text-[var(--green-primary)] font-semibold hover:bg-[var(--green-primary)]/10 px-3 py-2 rounded-xl transition-colors border border-[var(--green-primary)]/20 disabled:opacity-50">
+          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Navigation className="w-3.5 h-3.5" />}
+          Refresh
+        </button>
+      </div>
+
+      {activeOrders.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            <h3 className="text-sm font-bold text-[var(--text-color)]">Active Orders</h3>
+            <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{activeOrders.length}</span>
+          </div>
+          {activeOrders.map((order, i) => <OrderCard key={order._id} order={order} idx={i} isPast={false} />)}
+        </div>
+      )}
+
+      {pastOrders.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle2 className="w-4 h-4 text-[var(--green-primary)]" />
+            <h3 className="text-sm font-bold text-[var(--text-color)]">Past Orders</h3>
+            <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{pastOrders.length}</span>
+          </div>
+          {pastOrders.map((order, i) => <OrderCard key={order._id} order={order} idx={i} isPast={true} />)}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,4 @@
 // src/modules/hotel/hotel.service.js
-import axios from "axios"; 
 import Food from "./hotel.model.js";
 import { logPrediction } from "../outcome/outcome.service.js";
 
@@ -87,10 +86,20 @@ export const getAIDecision = async (foodData) => {
       Price: foodData.Price,
     };
 
-    const response = await axios.post(FASTAPI_URL, payload);
-    return response.data;
+    const res = await fetch(FASTAPI_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`AI service responded with ${res.status}: ${errText}`);
+    }
+
+    return await res.json();
   } catch (err) {
-    console.error("AI Prediction Error:", err.response?.data || err.message);
+    console.error("AI Prediction Error:", err.message);
     throw new Error("AI service failed to respond");
   }
 };
