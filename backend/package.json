@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
-    "server": "nodemon src/server.js"
+    "server": "nodemon src/server.js",
+    "test:optimizer": "node src/services/routeOptimizer/test_optimizer.js"
   },
   "keywords": [],
   "author": "",
